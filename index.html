@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Rasa · Digital Vault</title>
+    <meta name="description" content="Rasa is a pocket museum for the music, books, web series and movies that moved you." />
+    <meta name="theme-color" content="#111111" />
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='6' y='6' width='88' height='88' rx='20' fill='%23FFC900' stroke='%23111' stroke-width='8'/><text x='50' y='70' font-size='56' font-weight='700' font-family='Arial' text-anchor='middle' fill='%23111'>R</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+      :root {
+        --ink: #111; --paper: #fbf8f1; --pink: #ff90e8; --mint: #23a094; --orange: #ff5c00;
+        --blue: #90a8ff; --yellow: #ffc900; --purple: #b185db;
+        --bg: #e2dcd0; --dots: rgba(17, 17, 17, 0.18);
+        --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        /* Chunky arrow cursors: yellow by default, pink over anything clickable */
+        --cur: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M3 3l11 26 4-11 11-4z' fill='%23FFC900' stroke='%23111' stroke-width='3' stroke-linejoin='round'/></svg>") 3 3, auto;
+        --cur-hot: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M3 3l11 26 4-11 11-4z' fill='%23FF90E8' stroke='%23111' stroke-width='3' stroke-linejoin='round'/></svg>") 3 3, pointer;
+        /* Doodle wallpaper, defined once and used as a mask */
+        --doodle: url("data:image/svg+xml;utf8,<svg width='400' height='400' xmlns='http://www.w3.org/2000/svg' stroke='black' stroke-width='14' fill='none' stroke-linecap='round' stroke-linejoin='round'><path d='M30,30 C60,10 90,60 50,90 C10,120 -10,60 30,30 Z' fill='black'/><path d='M250,200 C280,180 320,220 280,260 C240,300 210,240 250,200 Z' fill='black'/><path d='M150,150 C150,80 250,80 250,150 C250,220 200,200 150,220 Z'/><circle cx='180' cy='130' r='8' fill='black' stroke='none'/><circle cx='220' cy='130' r='8' fill='black' stroke='none'/><path d='M180,160 Q200,190 220,160'/><rect x='300' y='50' width='80' height='120' rx='40'/><circle cx='325' cy='90' r='8' fill='black' stroke='none'/><circle cx='355' cy='90' r='8' fill='black' stroke='none'/><path d='M330,130 h20' stroke-width='10'/><path d='M0,200 C50,200 80,250 80,300 C80,350 50,400 0,400'/><circle cx='40' cy='260' r='8' fill='black' stroke='none'/><circle cx='40' cy='320' r='8' fill='black' stroke='none'/><path d='M100,50 C120,50 140,30 140,10'/><path d='M200,10 C200,50 280,50 280,10'/><path d='M380,200 C320,200 320,300 380,300'/><path d='M100,280 C150,250 200,320 150,380 C100,350 50,380 100,280 Z'/><path d='M150,320 Q125,350 150,380'/><path d='M30,150 Q60,120 90,150 T150,150'/><path d='M50,250 L80,280 L110,250 L140,280'/><path d='M280,350 Q320,380 350,320 T400,350'/><path d='M200,380 Q220,350 240,380 T280,380'/><path d='M320,250 L350,250'/><path d='M350,280 L320,280'/><circle cx='100' cy='100' r='8' fill='black' stroke='none'/><circle cx='120' cy='120' r='8' fill='black' stroke='none'/><circle cx='380' cy='100' r='8' fill='black' stroke='none'/><circle cx='360' cy='130' r='8' fill='black' stroke='none'/><circle cx='200' cy='280' r='8' fill='black' stroke='none'/><path d='M250,90 A20,20 0 0,1 290,90'/></svg>");
+      }
+
+      /* ---------- Base ---------- */
+      *, *::before, *::after { box-sizing: border-box; margin: 0; }
+      [hidden] { display: none !important; }
+      body {
+        min-height: 100vh; padding-bottom: 150px; overflow-x: clip;
+        font-family: "Space Grotesk", system-ui, sans-serif; font-size: 16px; color: var(--ink); background: var(--bg);
+        cursor: var(--cur); transition: background-color 0.5s ease; -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+        background: var(--dots); transition: background-color 0.5s ease;
+        -webkit-mask-image: var(--doodle); mask-image: var(--doodle);
+        -webkit-mask-size: 400px; mask-size: 400px;
+      }
+      button, input, textarea { font: inherit; color: inherit; }
+      button { padding: 0; background: none; border: 0; }
+      button, label, .card, .sign { cursor: var(--cur-hot); }
+      input:not([type="radio"]), textarea { cursor: text; }
+      :focus-visible { outline: 3px dashed var(--ink); outline-offset: 3px; }
+      fieldset { min-width: 0; padding: 0; border: 0; }
+      .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+      .wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+
+      /* ---------- Buttons ---------- */
+      .btn {
+        --c: #fff; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 11px 18px; background: var(--c); border: 3px solid var(--ink); border-radius: 12px;
+        box-shadow: 4px 4px 0 var(--ink); font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
+        text-transform: uppercase; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+      .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
+      .btn.pink { --c: var(--pink); }
+      .btn.mint { --c: var(--mint); }
+      .btn.yellow { --c: var(--yellow); }
+      .btn.sm { padding: 6px 12px; font-size: 12px; box-shadow: 3px 3px 0 var(--ink); }
+      .x {
+        display: grid; place-items: center; flex-shrink: 0; width: 28px; height: 28px; background: #fff;
+        border: 2px solid var(--ink); border-radius: 50%; font-size: 12px; font-weight: 700;
+        transition: background-color 0.15s, color 0.15s, transform 0.25s var(--spring);
+      }
+      .x:hover { background: var(--ink); color: #fff; transform: rotate(90deg); }
+      kbd {
+        padding: 0 6px; background: var(--paper); border: 2px solid var(--ink); border-bottom-width: 4px;
+        border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 700;
+      }
+
+      /* ---------- Marquee (two identical halves = seamless loop) ---------- */
+      .marquee {
+        overflow: hidden; padding: 12px 0; background: var(--ink); border-bottom: 4px solid var(--ink);
+        font-size: clamp(15px, 2vw, 21px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      }
+      .mq-track { display: flex; width: max-content; animation: marquee 50s linear infinite; }
+      .marquee:hover .mq-track { animation-play-state: paused; }
+      .mq-half { display: flex; flex-shrink: 0; align-items: center; }
+      .mq-half span { padding: 0 20px; color: var(--yellow); white-space: nowrap; }
+      .mq-half span:nth-of-type(4n + 2) { color: var(--pink); }
+      .mq-half span:nth-of-type(4n + 3) { color: var(--blue); }
+      .mq-half span:nth-of-type(4n) { color: #fff; }
+      .mq-half i { color: #fff; font-style: normal; }
+      @keyframes marquee { to { transform: translateX(-50%); } }
+
+      /* ---------- Hanging sign ---------- */
+      .hero { display: flex; flex-direction: column; align-items: center; padding: 46px 0 30px; }
+      .rod { position: relative; width: 240px; height: 12px; background: var(--ink); border-radius: 99px; }
+      .rod::before, .rod::after { content: ""; position: absolute; top: -4px; width: 20px; height: 20px; background: var(--ink); border-radius: 50%; }
+      .rod::before { left: -8px; }
+      .rod::after { right: -8px; }
+      .sign {
+        position: relative; margin-top: 16px; padding: 28px 52px 20px; text-align: center;
+        background: var(--yellow); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink);
+        transform: rotate(6deg); transform-origin: 50% -16px; transition: transform 0.7s var(--spring);
+      }
+      .sign:hover { transform: rotate(0deg); }
+      .sign.swing { animation: swing 1.6s ease-out; }
+      @keyframes swing {
+        0% { transform: rotate(6deg); } 18% { transform: rotate(-14deg); } 36% { transform: rotate(10deg); }
+        54% { transform: rotate(-6deg); } 72% { transform: rotate(3deg); } 100% { transform: rotate(6deg); }
+      }
+      .hook { position: absolute; top: -24px; width: 12px; height: 32px; border: 3px solid var(--ink); border-radius: 6px; }
+      .hook.l { left: 44px; }
+      .hook.r { right: 44px; }
+      .sign h1 { font-size: clamp(3rem, 10vw, 4.6rem); line-height: 0.9; letter-spacing: -0.03em; text-transform: uppercase; }
+      .open {
+        display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding-top: 8px;
+        border-top: 3px solid var(--ink); font-size: 12px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase;
+      }
+      .dot { width: 11px; height: 11px; background: #ff3b3b; border: 2px solid var(--ink); border-radius: 50%; animation: blink 1.4s ease-in-out infinite; }
+      @keyframes blink { 50% { background: #ffd1d1; } }
+      .tagline {
+        margin-top: 34px; padding: 8px 14px; background: var(--ink); color: #fff; border-radius: 8px;
+        box-shadow: 4px 4px 0 var(--pink); font-weight: 600; text-align: center; transform: rotate(-2deg);
+      }
+
+      /* ---------- Toolbar ---------- */
+      .toolbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 18px; }
+      .search {
+        display: flex; flex: 1 1 300px; align-items: center; gap: 10px; max-width: 520px; padding: 0 12px;
+        background: #fff; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 6px 6px 0 var(--ink);
+        transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .search:focus-within { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); outline: 3px dashed var(--ink); outline-offset: 4px; }
+      .search svg { flex-shrink: 0; width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
+      .search input { flex: 1; min-width: 0; padding: 13px 0; background: none; border: 0; outline: 0; font-size: 16px; font-weight: 600; }
+      .search input::placeholder { color: #777; }
+      .stats { margin-bottom: 32px; text-align: center; }
+      .stats span {
+        display: inline-block; padding: 5px 14px; background: var(--paper); border: 2px solid var(--ink); border-radius: 99px;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      }
+
+      /* ---------- Cards (flip to see the note) ---------- */
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 34px 28px; }
+      .card { position: relative; display: grid; perspective: 1200px; transform: rotate(var(--tilt)); transition: transform 0.35s var(--spring); }
+      .card:hover, .card:focus-visible { transform: rotate(0deg) translate(-3px, -5px); }
+      .card:focus-visible { outline-offset: 8px; }
+      .card.pop { animation: pop 0.5s var(--spring) backwards; animation-delay: calc(var(--i) * 55ms); }
+      @keyframes pop { from { opacity: 0; transform: translateY(26px) scale(0.9) rotate(var(--tilt)); } }
+      .card.spot { z-index: 2; animation: wiggle 0.45s ease-in-out 3; }
+      @keyframes wiggle {
+        0%, 100% { transform: scale(1.04) rotate(0deg); }
+        25% { transform: scale(1.07) rotate(-3deg); }
+        75% { transform: scale(1.07) rotate(3deg); }
+      }
+      .inner { display: grid; min-height: 290px; transform-style: preserve-3d; transition: transform 0.65s var(--spring); }
+      .card.flipped .inner { transform: rotateY(180deg); }
+      .face {
+        position: relative; grid-area: 1 / 1; display: flex; flex-direction: column; background: #fff;
+        border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink);
+        -webkit-backface-visibility: hidden; backface-visibility: hidden; transition: box-shadow 0.3s;
+      }
+      .card:hover .face, .card.spot .face { box-shadow: 10px 10px 0 var(--ink); }
+      .card.spot .face { outline: 4px dashed var(--ink); outline-offset: 6px; }
+      .back { background: var(--paper); transform: rotateY(180deg); }
+      .front::after {
+        content: ""; position: absolute; top: -13px; left: 50%; width: 66px; height: 24px; margin-left: -33px;
+        background: rgba(255, 255, 255, 0.6); border: 2px dashed rgba(17, 17, 17, 0.3); transform: rotate(-4deg);
+      }
+      .bar {
+        display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 46px;
+        padding: 8px 10px; background: var(--c); border-bottom: 3px solid var(--ink); border-radius: 13px 13px 0 0;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
+      }
+      /* The shelf name is each card's headline label: a white badge with the shelf's icon */
+      .bar > span {
+        display: inline-flex; align-items: center; gap: 7px; padding: 3px 12px 3px 5px; background: #fff;
+        border: 2px solid var(--ink); border-radius: 99px; box-shadow: 2px 2px 0 var(--ink);
+        font-size: 13px; letter-spacing: 0.1em; white-space: nowrap;
+      }
+      .bar > span svg { flex-shrink: 0; width: 24px; height: 24px; }
+      .body {
+        position: relative; display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center;
+        gap: 6px; padding: 20px 18px 24px; text-align: center;
+      }
+      .back .body { gap: 14px; }
+      .icon { width: 84px; height: 84px; margin-bottom: 10px; transition: transform 0.35s var(--spring); }
+      .icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
+      .card:hover .icon { transform: scale(1.12) rotate(-6deg); }
+      /* Artwork sits on a mat in its natural shape (square sleeves, tall posters), never cropped */
+      .cover {
+        position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 0.9; max-width: 100%;
+        padding: 16px; overflow: hidden; background: var(--c); border-bottom: 3px solid var(--ink);
+      }
+      .cover + .body { padding-top: 14px; }
+      .art { position: relative; isolation: isolate; display: block; height: 100%; max-width: 100%; transition: transform 0.35s var(--spring); }
+      .card:hover .art { transform: translateY(-4px); }
+      .art img, .gen { display: block; height: 100%; border: 3px solid var(--ink); border-radius: 6px; box-shadow: 5px 5px 0 var(--ink); }
+      .art img { width: auto; max-width: 100%; object-fit: contain; background: var(--paper); }
+      .gen {
+        aspect-ratio: 2 / 3; display: flex; flex-direction: column; justify-content: space-between; gap: 6px; padding: 9% 8%; text-align: left;
+        background:
+          radial-gradient(circle at 78% 22%, hsl(calc(var(--h) * 1deg) 95% 82%) 0 17%, transparent 18%),
+          repeating-linear-gradient(-45deg, transparent 0 10px, rgba(255, 255, 255, 0.13) 10px 20px),
+          linear-gradient(160deg, hsl(calc(var(--h) * 1deg) 85% 66%), hsl(calc((var(--h) + 60) * 1deg) 75% 50%));
+      }
+      .gen svg { width: 34%; max-width: 48px; height: auto; }
+      .gen b {
+        align-self: stretch; max-height: 62%; overflow: hidden; padding: 2px 5px; background: var(--paper); border: 2px solid var(--ink);
+        font-size: 13px; line-height: 1.15; text-transform: uppercase; overflow-wrap: break-word; hyphens: auto;
+      }
+      .gen small { color: var(--ink); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      .add-photo {
+        position: absolute; z-index: 2; right: 10px; bottom: 10px; padding: 5px 10px; background: #fff;
+        border: 2px solid var(--ink); border-radius: 99px; box-shadow: 2px 2px 0 var(--ink);
+        font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      }
+      .add-photo:hover { background: var(--yellow); }
+      /* Music: the record slides out of its sleeve */
+      .card[data-cat="music"] .art { height: 84%; translate: -11% 0; }
+      .card[data-cat="music"] .gen { aspect-ratio: 1; }
+      .card[data-cat="music"] .art::before {
+        content: ""; position: absolute; z-index: -1; top: 5%; bottom: 5%; right: -24%; aspect-ratio: 1; border-radius: 50%;
+        border: 3px solid var(--ink); transition: right 0.5s var(--spring);
+        background: radial-gradient(circle, var(--c) 0 15%, var(--ink) 16% 18%, #333 19% 30%, #111 31% 33%, #333 34% 47%, #111 48%);
+      }
+      .card[data-cat="music"]:hover .art::before { right: -38%; }
+      /* Movies: the poster runs on a film strip */
+      .card[data-cat="movie"] .cover {
+        background:
+          repeating-linear-gradient(var(--paper) 0 9px, transparent 9px 20px) left 4px top 6px / 8px 100% no-repeat,
+          repeating-linear-gradient(var(--paper) 0 9px, transparent 9px 20px) right 4px top 6px / 8px 100% no-repeat,
+          var(--ink);
+      }
+      .card[data-cat="movie"] .art img, .card[data-cat="movie"] .gen { border-color: var(--paper); box-shadow: 5px 5px 0 var(--c); }
+      /* Web series: a "continue watching" bar filled by the rating */
+      .card[data-cat="series"] .art::after {
+        content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: 8px; border-top: 2px solid var(--ink);
+        background: linear-gradient(90deg, #ff3b3b var(--p, 35%), rgba(255, 255, 255, 0.75) 0);
+      }
+      /* Books: a spine on the left and a block of pages on the right */
+      .card[data-cat="book"] .art::before {
+        content: ""; position: absolute; z-index: 1; top: 3px; bottom: 3px; left: 3px; width: 9%; pointer-events: none;
+        background: linear-gradient(90deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.25) 55%, rgba(0, 0, 0, 0.12));
+      }
+      .card[data-cat="book"] .art::after {
+        content: ""; position: absolute; z-index: -1; top: 6px; bottom: 0; right: -10px; width: 13px;
+        background: repeating-linear-gradient(var(--paper) 0 2px, #cfc8b8 2px 3px);
+        border: 3px solid var(--ink); border-left: 0; border-radius: 0 4px 4px 0;
+      }
+      .cover.loading::after {
+        content: ""; position: absolute; inset: 0; background-size: 250% 100%; animation: shimmer 1.1s linear infinite;
+        background-image: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.6) 50%, transparent 70%);
+      }
+      .cover img.fresh { animation: fadein 0.45s ease-out; }
+      @keyframes shimmer { from { background-position: 130% 0; } to { background-position: -130% 0; } }
+      @keyframes fadein { from { opacity: 0; } }
+      .acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+      .card h3 { font-size: 1.3rem; line-height: 1.1; text-transform: uppercase; overflow-wrap: anywhere; }
+      .by {
+        padding-top: 8px; border-top: 2px solid rgba(17, 17, 17, 0.1); color: #555;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+      }
+      .mini { font-size: 15px; letter-spacing: 3px; }
+      .front .body::after {
+        content: "flip ↻"; position: absolute; left: 14px; bottom: 9px; opacity: 0; transition: opacity 0.2s;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      }
+      .card:hover .front .body::after { opacity: 0.45; }
+      .note { font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
+      .note::before {
+        content: "\201C"; display: block; height: 30px; color: var(--c);
+        font-size: 64px; font-weight: 700; line-height: 1; -webkit-text-stroke: 2px var(--ink);
+      }
+      .note em { color: #666; }
+      .card .btn { --c: inherit; }
+      .sticker {
+        position: absolute; right: -14px; bottom: -14px; display: grid; place-items: center; width: 56px; height: 56px;
+        background: var(--pink); border: 3px solid var(--ink); border-radius: 50%; box-shadow: 3px 3px 0 var(--ink);
+        font-size: 12px; font-weight: 700; text-transform: uppercase; transform: rotate(-12deg);
+        animation: stick 0.5s var(--spring) 0.4s backwards;
+      }
+      .tag {
+        position: absolute; z-index: 3; top: -18px; left: -12px; padding: 6px 12px; pointer-events: none;
+        background: var(--yellow); border: 3px solid var(--ink); border-radius: 10px; box-shadow: 3px 3px 0 var(--ink);
+        font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; transform: rotate(-8deg);
+        animation: stick 0.45s var(--spring) backwards;
+      }
+      @keyframes stick { from { transform: scale(0) rotate(-60deg); } }
+
+      /* ---------- Star rating (cards and form) ---------- */
+      .rate { display: flex; gap: 2px; }
+      .rate button {
+        padding: 2px; color: #fff; font-size: 26px; line-height: 1; -webkit-text-stroke: 2px var(--ink);
+        transition: transform 0.2s var(--spring), color 0.1s;
+      }
+      .rate button.on { color: var(--yellow); }
+      .rate:hover button { color: #fff; }
+      .rate:hover button:hover, .rate:hover button:has(~ button:hover) { color: var(--yellow); }
+      .rate button:hover { transform: scale(1.25) rotate(-10deg); }
+      .rate-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+      .rate-txt { color: #555; font-size: 13px; font-weight: 700; }
+
+      /* ---------- Empty state ---------- */
+      .empty {
+        display: flex; flex-direction: column; align-items: center; gap: 10px; grid-column: 1 / -1; padding: 60px 20px;
+        background: rgba(255, 255, 255, 0.6); border: 3px dashed var(--ink); border-radius: 20px; text-align: center;
+        backdrop-filter: blur(4px);
+      }
+      .empty b { font-size: 64px; line-height: 1; opacity: 0.3; }
+      .empty h2 { font-size: 22px; letter-spacing: 0.06em; text-transform: uppercase; overflow-wrap: anywhere; }
+      .empty p { max-width: 380px; color: #444; font-weight: 500; }
+      .empty .btn { margin-top: 10px; }
+      .hint { margin-top: 48px; color: #333; font-size: 13px; font-weight: 600; text-align: center; }
+      .hint kbd { margin: 0 2px; }
+
+      /* ---------- Dock ---------- */
+      .dock {
+        position: fixed; z-index: 40; left: 0; right: 0; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 10px;
+        width: max-content; max-width: calc(100% - 24px); margin: 0 auto; padding: 4px 10px 4px 4px;
+        background: var(--ink); border: 3px solid #fff; border-radius: 20px; box-shadow: 8px 8px 0 var(--pink);
+        transition: box-shadow 0.2s;
+      }
+      .dock:hover { box-shadow: 11px 11px 0 var(--pink); }
+      .dock :focus-visible { outline-color: #fff; }
+      .filters { display: flex; gap: 8px; min-width: 0; padding: 10px 8px; overflow-x: auto; scrollbar-width: none; }
+      .filters::-webkit-scrollbar { display: none; }
+      .f {
+        --c: #fff; display: flex; flex-shrink: 0; align-items: center; gap: 8px; padding: 8px 10px 8px 13px;
+        background: var(--c); border: 2px solid var(--ink); border-radius: 12px; font-size: 13px; font-weight: 700;
+        letter-spacing: 0.06em; text-transform: uppercase; transition: transform 0.2s var(--spring), box-shadow 0.2s;
+      }
+      .f:hover { transform: translateY(-2px); }
+      .f[aria-pressed="true"] { transform: translateY(-2px); box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px #fff; }
+      .f .n { min-width: 22px; padding: 1px 6px; background: var(--ink); color: #fff; border-radius: 99px; font-size: 11px; text-align: center; }
+      .sep { flex-shrink: 0; width: 3px; height: 30px; background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
+      .dock > .btn { flex-shrink: 0; box-shadow: 3px 3px 0 #fff; }
+      .dock > .btn:hover { box-shadow: 5px 5px 0 #fff; }
+      .dock > .btn:active { box-shadow: 0 0 0 #fff; }
+      .plus { display: inline-block; font-size: 20px; line-height: 0; transition: transform 0.3s var(--spring); }
+      .add:hover .plus { transform: rotate(90deg); }
+      .add.nudge { animation: nudge 1.4s ease-in-out infinite; }
+      @keyframes nudge { 50% { transform: translateY(-4px) rotate(-3deg); } }
+
+      /* ---------- Toast + confetti ---------- */
+      /* Rasu's speech bubble (also carries the Undo button) */
+      .toast {
+        position: absolute; left: 60px; bottom: 60px; display: flex; align-items: center; gap: 10px;
+        width: max-content; max-width: min(270px, calc(100vw - 110px)); padding: 9px 10px 9px 13px;
+        background: #fff; border: 3px solid var(--ink); border-radius: 16px 16px 16px 4px; box-shadow: 4px 4px 0 var(--ink);
+        font-size: 13px; font-weight: 700; line-height: 1.3;
+        opacity: 0; visibility: hidden; transform: translateY(10px) scale(0.85); transform-origin: 0 100%;
+        transition: opacity 0.2s, transform 0.35s var(--spring), visibility 0.2s;
+      }
+      .toast.show { opacity: 1; visibility: visible; transform: none; }
+      .toast :focus-visible { outline-color: var(--ink); }
+
+      /* ---------- Rasu, the vault pet ---------- */
+      .pet-wrap { position: absolute; left: 16px; bottom: calc(100% - 9px); }
+      .pet { display: block; width: 64px; height: 64px; }
+      .dock .pet:focus-visible { outline-color: var(--ink); border-radius: 50%; }
+      .pet svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 100%; animation: bob 2.6s ease-in-out infinite; }
+      .pet.asleep svg { animation-duration: 4.5s; }
+      .pet.hop { animation: hop 0.6s var(--spring); }
+      .pet.shake { animation: shake 0.5s; }
+      .pet-body { fill: var(--pet, #ffc900); transition: fill 0.4s; }
+      .sprout { transform-origin: 40px 17px; animation: sway 3s ease-in-out infinite; }
+      .eye { transform-box: fill-box; transform-origin: center; transition: transform 0.08s; }
+      .pet.blink .eye, .pet.asleep .eye { transform: scaleY(0.12); }
+      .pupil { transform: translate(var(--px, 0px), var(--py, 0px)); transition: transform 0.12s; }
+      .zzz { position: absolute; left: 46px; bottom: 50px; pointer-events: none; }
+      .zzz i { position: absolute; font-style: normal; font-weight: 700; opacity: 0; }
+      .pet.asleep ~ .zzz i { animation: zzz 2.4s linear infinite; }
+      .pet.asleep ~ .zzz i:nth-child(2) { font-size: 1.2em; animation-delay: 0.8s; }
+      .pet.asleep ~ .zzz i:nth-child(3) { font-size: 1.45em; animation-delay: 1.6s; }
+      .heart { position: absolute; font-size: 22px; font-style: normal; -webkit-text-stroke: 1.5px var(--ink); }
+      @keyframes bob { 50% { transform: scale(1.04, 0.95); } }
+      @keyframes sway { 50% { transform: rotate(14deg); } }
+      @keyframes hop { 35% { transform: translateY(-22px) rotate(-8deg); } 65% { transform: scale(1.12, 0.86); } }
+      @keyframes shake { 20%, 60% { transform: translateX(-4px) rotate(-5deg); } 40%, 80% { transform: translateX(4px) rotate(5deg); } }
+      @keyframes zzz { 20% { opacity: 1; } 100% { opacity: 0; transform: translate(16px, -34px) rotate(-12deg); } }
+      .fx { position: fixed; inset: 0; z-index: 100; overflow: hidden; pointer-events: none; }
+      .bit { position: absolute; border: 2px solid var(--ink); }
+
+      /* ---------- Dialog ---------- */
+      dialog {
+        --c: var(--yellow); width: min(480px, 100% - 32px); padding: 0; color: var(--ink); background: #fff;
+        border: 3px solid var(--ink); border-radius: 18px; box-shadow: 10px 10px 0 var(--ink);
+      }
+      dialog[open] { animation: rise 0.35s var(--spring); }
+      @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(0.95); } }
+      dialog::backdrop { background: rgba(17, 17, 17, 0.35); backdrop-filter: blur(3px); }
+      .dlg-bar {
+        display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 12px 18px;
+        background: var(--c); border-bottom: 3px solid var(--ink); transition: background-color 0.3s;
+      }
+      .dlg-bar h2 { font-size: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
+      .dlg-body { display: grid; gap: 14px; padding: 16px 18px 20px; }
+      .inp {
+        width: 100%; padding: 11px 13px; background: var(--paper); border: 3px solid var(--ink); border-radius: 10px;
+        font-size: 16px; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s;
+      }
+      .inp:focus { outline: 0; background: #fff; transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
+      textarea.inp { min-height: 64px; resize: vertical; }
+      .quick { display: grid; grid-template-columns: 104px 1fr; gap: 12px; }
+      .quick-fields { display: grid; align-content: center; gap: 10px; }
+      .drop-wrap { position: relative; }
+      .drop {
+        position: relative; display: grid; place-items: center; width: 104px; height: 104px; overflow: hidden;
+        background: var(--paper); border: 3px dashed var(--ink); border-radius: 14px; text-align: center;
+        font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+        transition: background-color 0.15s, transform 0.2s var(--spring);
+      }
+      .drop:hover, .drop.over { background: var(--c); transform: rotate(-3deg); }
+      .drop:focus-within { outline: 3px dashed var(--ink); outline-offset: 3px; }
+      .drop.has { border-style: solid; }
+      .drop b { display: block; font-size: 30px; line-height: 1; }
+      .drop small { display: block; margin-top: 2px; font-size: 9px; letter-spacing: 0.02em; text-transform: none; opacity: 0.65; }
+      .drop img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+      .drop-x { position: absolute; top: -10px; right: -10px; }
+      .more summary { width: max-content; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; list-style: none; cursor: var(--cur-hot); }
+      .more summary::-webkit-details-marker { display: none; }
+      .more summary::before { content: "+ "; }
+      .more[open] summary::before { content: "− "; }
+      .more-body { display: grid; gap: 10px; margin-top: 10px; }
+      .picks { display: flex; flex-wrap: wrap; gap: 8px; }
+      .pick { position: relative; }
+      .pick input { position: absolute; inset: 0; opacity: 0; cursor: inherit; }
+      .pick span {
+        display: block; padding: 7px 12px; background: #fff; border: 2.5px solid var(--ink); border-radius: 10px;
+        font-size: 13px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+        transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+      }
+      .pick input:checked + span { background: var(--c); transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--ink); }
+      .pick input:focus-visible + span { outline: 3px dashed var(--ink); outline-offset: 2px; }
+      .dlg-body .btn { width: 100%; margin-top: 4px; padding: 15px; font-size: 16px; }
+
+      /* ---------- Responsive + accessibility ---------- */
+      @media (max-width: 560px) {
+        .sign { padding: 24px 34px 18px; }
+        .hook.l { left: 28px; }
+        .hook.r { right: 28px; }
+        .add-txt { display: none; }
+      }
+      @media (hover: none) {
+        .hint, .search kbd { display: none; }
+        .front .body::after { opacity: 0.4; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
+          animation-delay: 0s !important; transition-duration: 0.01ms !important;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="marquee" aria-hidden="true"><div class="mq-track" id="mq"></div></div>
+
+    <header class="hero wrap">
+      <div class="rod"></div>
+      <div class="sign swing" id="sign" title="Show everything">
+        <span class="hook l"></span><span class="hook r"></span>
+        <h1>Rasa</h1>
+        <p class="open"><span class="dot"></span>Come in, we're open</p>
+      </div>
+      <p class="tagline">A pocket museum for everything that moved you.</p>
+    </header>
+
+    <main class="wrap">
+      <div class="toolbar">
+        <label class="search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
+          <span class="sr">Search the vault</span>
+          <input id="q" type="search" placeholder="Search titles, creators, notes…" autocomplete="off" />
+          <kbd aria-hidden="true">/</kbd>
+        </label>
+        <button class="btn pink" id="surprise" type="button">Surprise me ✦</button>
+      </div>
+      <p class="stats" aria-live="polite"><span id="statsTxt"></span></p>
+      <div class="grid" id="grid"></div>
+      <p class="hint">Click a card to flip it · drop a photo on a card to change it · <kbd>/</kbd> search · <kbd>N</kbd> new · <kbd>R</kbd> surprise</p>
+    </main>
+
+    <nav class="dock" aria-label="Vault shelves">
+      <!-- Rasu, the vault pet: sits on the dock and talks through the speech bubble -->
+      <div class="pet-wrap">
+        <div class="toast" id="toast" role="status">
+          <span id="toastMsg"></span><button class="btn sm" id="toastUndo" type="button" hidden>Undo</button>
+        </div>
+        <button class="pet" id="pet" type="button" aria-label="Pet Rasu, the vault buddy">
+          <svg viewBox="0 0 80 80" aria-hidden="true">
+            <g class="sprout">
+              <path d="M40 17C40 10 43 6 48 5" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" />
+              <ellipse cx="51" cy="5" rx="6" ry="3.8" fill="#23A094" stroke="#111" stroke-width="2.5" transform="rotate(-20 51 5)" />
+            </g>
+            <ellipse cx="30" cy="73" rx="7" ry="5" fill="#111" />
+            <ellipse cx="50" cy="73" rx="7" ry="5" fill="#111" />
+            <path class="pet-body" d="M12 50C12 28 24 16 40 16S68 28 68 50C68 64 56 71 40 71S12 64 12 50Z" stroke="#111" stroke-width="4" />
+            <g class="eye"><circle cx="29" cy="42" r="8" fill="#fff" stroke="#111" stroke-width="3" /><g class="pupil"><circle cx="29" cy="42" r="4" fill="#111" /><circle cx="30.5" cy="40.5" r="1.3" fill="#fff" /></g></g>
+            <g class="eye"><circle cx="51" cy="42" r="8" fill="#fff" stroke="#111" stroke-width="3" /><g class="pupil"><circle cx="51" cy="42" r="4" fill="#111" /><circle cx="52.5" cy="40.5" r="1.3" fill="#fff" /></g></g>
+            <ellipse cx="20" cy="53" rx="5" ry="3" fill="#FF5C8A" opacity=".55" />
+            <ellipse cx="60" cy="53" rx="5" ry="3" fill="#FF5C8A" opacity=".55" />
+            <path id="mouth" d="M34 53Q40 59 46 53" fill="none" stroke="#111" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <span class="zzz" aria-hidden="true"><i>z</i><i>z</i><i>Z</i></span>
+      </div>
+      <div class="filters" id="filters"></div>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn yellow add" id="addBtn" type="button" aria-label="Add new artifact">
+        <span class="plus" aria-hidden="true">+</span><span class="add-txt">Add new</span>
+      </button>
+    </nav>
+
+    <div class="fx" id="fx" aria-hidden="true"></div>
+
+    <dialog id="dlg" aria-labelledby="dlgTitle">
+      <form id="form">
+        <div class="dlg-bar">
+          <h2 id="dlgTitle">New artifact</h2>
+          <button class="x" id="dlgClose" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="dlg-body">
+          <fieldset><legend class="sr">Category</legend><div class="picks" id="picks"></div></fieldset>
+          <div class="quick">
+            <div class="drop-wrap">
+              <label class="drop" id="drop" title="Add a photo: pick, drop or paste one">
+                <input class="sr" id="fPhoto" type="file" accept="image/*" aria-label="Add a photo" />
+                <span><b>+</b><span id="dropTxt">Photo</span><small>auto if empty</small></span>
+                <img id="fPreview" alt="" hidden />
+              </label>
+              <button class="x drop-x" id="photoX" type="button" aria-label="Remove photo" hidden>✕</button>
+            </div>
+            <div class="quick-fields">
+              <label><span class="sr">Title</span><input class="inp" id="fTitle" required maxlength="120" pattern=".*\S.*" placeholder="Title, e.g. Interstellar" autocomplete="off" autofocus /></label>
+              <label><span class="sr">Creator</span><input class="inp" id="fCreator" maxlength="80" placeholder="By… (optional)" autocomplete="off" /></label>
+            </div>
+          </div>
+          <details class="more" id="more">
+            <summary>Rating &amp; note</summary>
+            <div class="more-body">
+              <div class="rate-row"><div class="rate" id="fStars" role="group" aria-label="Rating"></div><span class="rate-txt" id="rateTxt"></span></div>
+              <label><span class="sr">Note</span><textarea class="inp" id="fNote" maxlength="280" rows="2" placeholder="Why does it live in your vault?"></textarea></label>
+            </div>
+          </details>
+          <button class="btn mint" id="fSubmit" type="submit">Save to vault</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script>
+      // ---------- Config ----------
+      const CATS = {
+        music: { label: "Music", one: "Music", color: "#FF90E8", bg: "#e8bee2", dots: "rgba(255,144,232,.5)" },
+        book: { label: "Books", one: "Book", color: "#23A094", bg: "#a3dcd4", dots: "rgba(35,160,148,.35)" },
+        series: { label: "Web Series", one: "Web Series", color: "#90A8FF", bg: "#bdc9ed", dots: "rgba(144,168,255,.4)" },
+        movie: { label: "Movies", one: "Movie", color: "#FF5C00", bg: "#e8c3b0", dots: "rgba(255,92,0,.25)" },
+      };
+      const ALL = { bg: "#e2dcd0", dots: "rgba(17,17,17,.18)" };
+      const COLORS = ["#FF90E8", "#23A094", "#90A8FF", "#FF5C00", "#FFC900", "#B185DB"]; // confetti
+      const RATE_WORDS = ["Not rated yet", "Meh", "Fine", "Good", "Great", "Obsessed"];
+      const KEY = "rasaVaultV3"; // fresh key so the four-card default shows
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const svg = (s) =>
+        `<svg viewBox="0 0 100 100" stroke="#111" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true">${s}</svg>`;
+      const ICONS = {
+        book: svg(`<path fill="#fff" d="M20 20h40v60H20z"/><path fill="#23A094" d="M60 20h20v60H60z"/><path fill="none" d="M30 35h20M30 50h20M30 65h10"/>`),
+        movie: svg(`<rect fill="#FF5C00" x="15" y="35" width="70" height="50" rx="5"/><path fill="#fff" d="M40 45v30l25-15z"/><rect fill="#111" x="15" y="15" width="70" height="20" rx="2"/><path fill="none" stroke="#fff" d="M30 15 20 35M50 15 40 35M70 15 60 35"/>`),
+        music: svg(`<rect fill="#FF90E8" x="10" y="25" width="80" height="50" rx="5"/><rect fill="#fff" x="20" y="35" width="60" height="25" rx="2"/><circle fill="#111" cx="35" cy="47" r="6"/><circle fill="#111" cx="65" cy="47" r="6"/><path fill="#111" d="M25 75l10-10h30l10 10z"/>`),
+        series: svg(`<rect fill="#90A8FF" x="10" y="25" width="80" height="60" rx="10"/><rect fill="#fff" x="20" y="35" width="60" height="40" rx="5"/><circle fill="#FF90E8" cx="85" cy="15" r="5"/><path fill="none" d="M50 25 30 5M50 25 70 5"/>`),
+      };
+
+      const SEED = [
+        { id: 1, category: "book", title: "The Design of Everyday Things", creator: "Don Norman", rating: 5, note: "Ruined every door handle for me. In the best way." },
+        { id: 2, category: "music", title: "Plastic Beach", creator: "Gorillaz", rating: 4, note: "A whole cartoon island you can listen to. Sunday-morning album." },
+        { id: 3, category: "movie", title: "Spider-Verse", creator: "Sony Animation", rating: 5, note: "Every single frame could hang in a gallery." },
+        { id: 4, category: "series", title: "Severance", creator: "Dan Erickson", rating: 5, note: "Made me very grateful to leave work at work." },
+      ];
+      // Cover photos for the example cards. Empty here (use "Find photo"); the shared copy embeds them,
+      // because its host blocks images from other sites. Turned into blob URLs once so renders stay light.
+      const SEED_COVERS = {};
+      for (const [id, uri] of Object.entries(SEED_COVERS)) {
+        const bin = atob(uri.slice(uri.indexOf(",") + 1));
+        SEED_COVERS[id] = URL.createObjectURL(new Blob([Uint8Array.from(bin, (c) => c.charCodeAt(0))], { type: "image/jpeg" }));
+      }
+      const seedCover = (x) => (SEED_COVERS[x.id] && SEED.some((s) => s.id === x.id && s.title === x.title) ? SEED_COVERS[x.id] : "");
+
+      // ---------- Helpers & state ----------
+      const $ = (s) => document.querySelector(s);
+      const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+      const grid = $("#grid"), q = $("#q"), filtersEl = $("#filters"), statsTxt = $("#statsTxt"), sign = $("#sign");
+      const addBtn = $("#addBtn"), surpriseBtn = $("#surprise"), toastEl = $("#toast"), fx = $("#fx");
+      const dlg = $("#dlg"), form = $("#form"), fStars = $("#fStars"), fTitle = $("#fTitle"), fCreator = $("#fCreator"), fNote = $("#fNote");
+
+      let filter = "all", editingId = null, formRating = 0, toastTimer, spotTimer, lastPick;
+      const flipped = new Set();
+
+      // ---------- Storage ----------
+      function clean(x) {
+        if (!x || typeof x !== "object" || !Object.hasOwn(CATS, x.category) || typeof x.title !== "string") return null;
+        // Older saves have no rating/note: borrow them from the matching seed item
+        const seed = SEED.find((s) => s.id === x.id && s.title === x.title) || {};
+        const rating = Math.round(Number(x.rating ?? seed.rating) || 0);
+        return {
+          id: Number.isFinite(x.id) ? x.id : 0,
+          category: x.category,
+          title: x.title.slice(0, 120),
+          creator: String(x.creator ?? "").slice(0, 80),
+          rating: Math.min(5, Math.max(0, rating)),
+          note: String(x.note ?? seed.note ?? "").slice(0, 280),
+          added: Number(x.added) || 0,
+          photo: x.photo === true,
+        };
+      }
+
+      function load() {
+        let data = null;
+        try { data = JSON.parse(localStorage.getItem(KEY)); } catch {}
+        if (!Array.isArray(data)) return SEED.map((s) => ({ ...s, added: 0 }));
+        const seen = new Set();
+        let next = Date.now();
+        return data.map(clean).filter(Boolean).map((it) => {
+          if (!it.id || seen.has(it.id)) it.id = next++;
+          seen.add(it.id);
+          return it;
+        });
+      }
+
+      function save() {
+        try { localStorage.setItem(KEY, JSON.stringify(vault)); } catch {}
+      }
+
+      let vault = load();
+
+      // ---------- Static UI ----------
+      const phrases = ["The essence of art", "Curated illusions", "Your digital brain", '<b class="mq-n">0</b> treasures and counting'];
+      const half = phrases.map((p) => `<span>${p}</span><i>✦</i>`).join("").repeat(3);
+      $("#mq").innerHTML = `<div class="mq-half">${half}</div><div class="mq-half">${half}</div>`;
+
+      filtersEl.innerHTML = [["all", "All", "#fff"], ...Object.entries(CATS).map(([k, c]) => [k, c.label, c.color])]
+        .map(([k, label, color]) => `<button class="f" type="button" data-f="${k}" style="--c:${color}" aria-pressed="false">${label}<span class="n">0</span></button>`)
+        .join("");
+
+      $("#picks").innerHTML = Object.entries(CATS)
+        .map(([k, c]) => `<label class="pick" style="--c:${c.color}"><input type="radio" name="cat" value="${k}" /><span>${c.one}</span></label>`)
+        .join("");
+
+      fStars.innerHTML = [1, 2, 3, 4, 5]
+        .map((v) => `<button type="button" data-v="${v}" aria-label="${v} star${v > 1 ? "s" : ""}">★</button>`)
+        .join("");
+
+      // ---------- Rendering ----------
+      const matches = (x, term) => !term || `${x.title} ${x.creator} ${x.note}`.toLowerCase().includes(term);
+
+      function render(animate = true, popId = null) {
+        const term = q.value.trim().toLowerCase();
+        const list = vault.filter((x) => (filter === "all" || x.category === filter) && matches(x, term)).reverse();
+        const n = vault.length;
+
+        filtersEl.querySelectorAll(".f").forEach((b) => {
+          const k = b.dataset.f;
+          b.setAttribute("aria-pressed", k === filter);
+          b.querySelector(".n").textContent = k === "all" ? n : vault.filter((x) => x.category === k).length;
+        });
+        document.querySelectorAll(".mq-n").forEach((el) => (el.textContent = n));
+
+        const rated = vault.filter((x) => x.rating);
+        const avg = rated.length ? (rated.reduce((s, x) => s + x.rating, 0) / rated.length).toFixed(1) : 0;
+        const count = list.length === n ? `${n} treasure${n === 1 ? "" : "s"}` : `Showing ${list.length} of ${n}`;
+        statsTxt.textContent = count + (avg ? ` · ${avg}★ average` : "");
+        addBtn.classList.toggle("nudge", !n);
+
+        grid.innerHTML = list.length ? list.map((x, i) => cardHTML(x, i, animate || x.id === popId)).join("") : emptyHTML();
+        grid.querySelectorAll("img[data-pid]").forEach((img) => photoURL(Number(img.dataset.pid)).then((u) => (u ? (img.src = u) : img.remove())));
+      }
+
+      // A poster made from the title (color picked from the title), shown until a real photo is added
+      function genArt(x, t, by) {
+        const hue = [...x.title].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 17);
+        return `<span class="art gen" style="--h:${hue}">${ICONS[x.category]}<b>${t}</b>${by ? `<small>${by}</small>` : ""}</span>`;
+      }
+
+      function cardHTML(x, i, animate) {
+        const c = CATS[x.category];
+        const t = esc(x.title), by = esc(x.creator);
+        const isFlipped = flipped.has(x.id);
+        const preset = x.photo ? "" : seedCover(x);
+        const img = x.photo ? `<img data-pid="${x.id}" alt="" decoding="async" />` : preset ? `<img src="${preset}" alt="" decoding="async" />` : "";
+        // Every card gets artwork: the real photo, or a poster made from the title
+        const art = img ? `<span class="art">${img}</span>` : genArt(x, t, by);
+        const tilt = img ? 0 : ((((x.id * 5) % 9) - 4) * 0.6).toFixed(1); // photo cards hang straight so photos stay sharp
+        const fresh = x.added && Date.now() - x.added < 3 * 864e5;
+        const stars = [1, 2, 3, 4, 5]
+          .map((v) => `<button type="button" data-act="rate" data-v="${v}" class="${v <= x.rating ? "on" : ""}" aria-label="Rate ${v} of 5" aria-pressed="${v === x.rating}">★</button>`)
+          .join("");
+        return `
+          <article class="card${isFlipped ? " flipped" : ""}${animate ? " pop" : ""}" data-id="${x.id}" data-cat="${x.category}" tabindex="0"
+            style="--c:${c.color};--tilt:${tilt}deg;--i:${Math.min(i, 12)};--p:${x.rating ? x.rating * 20 : 35}%" aria-label="${t}${by ? ` by ${by}` : ""}. Press Enter to flip.">
+            <div class="inner">
+              <div class="face front"${isFlipped ? " inert" : ""}>
+                <div class="bar"><span>${ICONS[x.category]}${c.one}</span><button class="x" type="button" data-act="del" aria-label="Delete ${t}">✕</button></div>
+                <div class="cover${fetching.has(x.id) ? " loading" : ""}">${art}${img ? "" : `<button class="add-photo" type="button" data-act="photo" aria-label="Add a photo for ${t}">+ Photo</button>`}</div>
+                <div class="body">
+                  <h3>${t}</h3>
+                  ${by ? `<p class="by">by ${by}</p>` : ""}
+                  <p class="mini"><span aria-hidden="true">${"★".repeat(x.rating)}${"☆".repeat(5 - x.rating)}</span><span class="sr">${x.rating ? `${x.rating} of 5 stars` : "Not rated"}</span></p>
+                </div>
+                ${fresh ? '<span class="sticker">New!</span>' : ""}
+              </div>
+              <div class="face back"${isFlipped ? "" : " inert"}>
+                <div class="bar"><span>Notes</span><button class="x" type="button" data-act="flip" aria-label="Flip back">↺</button></div>
+                <div class="body">
+                  <p class="note">${x.note ? esc(x.note) : "<em>No note yet. What made it stick?</em>"}</p>
+                  <div class="rate" role="group" aria-label="Rating">${stars}</div>
+                  <div class="acts"><button class="btn sm" type="button" data-act="edit">Edit</button>${img || !AUTO_PHOTOS ? "" : '<button class="btn sm" type="button" data-act="auto">Find photo ✦</button>'}</div>
+                </div>
+              </div>
+            </div>
+          </article>`;
+      }
+
+      function emptyHTML() {
+        const term = q.value.trim();
+        if (term) {
+          return `<div class="empty"><b>?</b><h2>Nothing matches “${esc(term)}”</h2>
+            <p>Try another word, or clear the search to see everything.</p>
+            <button class="btn" type="button" data-clear>Clear search</button></div>`;
+        }
+        const c = CATS[filter];
+        return `<div class="empty"><b>∅</b><h2>${c ? `No ${c.label.toLowerCase()} yet` : "The vault is empty"}</h2>
+          <p>Every vault starts with one thing you couldn't stop thinking about.</p>
+          <button class="btn yellow" type="button" data-add="${c ? filter : ""}">+ Add ${c ? `to ${c.label}` : "your first one"}</button></div>`;
+      }
+
+      function setFilter(f, quiet = false) {
+        filter = f;
+        const t = CATS[f] || ALL;
+        document.documentElement.style.setProperty("--bg", t.bg);
+        document.documentElement.style.setProperty("--dots", t.dots);
+        pet.style.setProperty("--pet", CATS[f]?.color || "#FFC900");
+        render();
+        if (!quiet) toast(SHELF_TALK[f]);
+      }
+
+      // ---------- Card actions ----------
+      function flip(card) {
+        const on = card.classList.toggle("flipped");
+        const id = Number(card.dataset.id);
+        if (on) flipped.add(id);
+        else flipped.delete(id);
+        card.querySelector(".front").inert = on;
+        card.querySelector(".back").inert = !on;
+      }
+
+      function rate(id, v) {
+        const it = vault.find((x) => x.id === id);
+        if (!it) return;
+        it.rating = it.rating === v ? 0 : v;
+        if (it.rating === 5) toast("Five stars? Iconic ✦");
+        else if (it.rating === 1) toast("Oof. Harsh.", null, "o");
+        save();
+        render(false);
+        grid.querySelector(`[data-id="${id}"] [data-v="${v}"]`)?.focus();
+      }
+
+      function removeItem(id, card) {
+        const done = () => {
+          const i = vault.findIndex((x) => x.id === id);
+          if (i < 0) return;
+          const [item] = vault.splice(i, 1);
+          flipped.delete(id);
+          if (item.photo) setTimeout(() => vault.some((x) => x.id === id) || dropPhoto(id), 7000); // once Undo has expired
+          save();
+          render(false);
+          toast(`Bye bye, “${item.title}”…`, () => {
+            vault.splice(Math.min(i, vault.length), 0, item);
+            save();
+            render(false, item.id);
+            toast("Phew! It's back ✦");
+          }, "sad");
+        };
+        if (reduce) return done();
+        card.style.pointerEvents = "none";
+        card.animate({ transform: "scale(.5) rotate(-14deg) translateY(40px)", opacity: 0 }, { duration: 280, easing: "ease-in", fill: "forwards" }).onfinish = done;
+      }
+
+      function surprise() {
+        const cards = [...grid.querySelectorAll(".card")];
+        if (!cards.length) {
+          surpriseBtn.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 300 });
+          return toast("Nothing to pick from here yet", null, "o");
+        }
+        let pick = cards[Math.floor(Math.random() * cards.length)];
+        if (cards.length > 1 && pick.dataset.id === lastPick) pick = cards[(cards.indexOf(pick) + 1) % cards.length];
+        lastPick = pick.dataset.id;
+        spotlight(pick, "Tonight's pick ✦");
+        toast("Ooh, this one! ✦");
+      }
+
+      function spotlight(card, label) {
+        clearTimeout(spotTimer);
+        grid.querySelectorAll(".spot").forEach((c) => c.classList.remove("spot"));
+        grid.querySelectorAll(".tag").forEach((t) => t.remove());
+        card.classList.remove("pop");
+        void card.offsetWidth; // restart the wiggle
+        card.classList.add("spot");
+        card.insertAdjacentHTML("beforeend", `<span class="tag">${label}</span>`);
+        card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+        card.focus({ preventScroll: true });
+        setTimeout(() => {
+          const r = card.getBoundingClientRect();
+          burst(r.left + r.width / 2, r.top + 40);
+          lookAt(r.left + r.width / 2, r.top + r.height / 2);
+        }, reduce ? 0 : 420);
+        spotTimer = setTimeout(() => {
+          card.classList.remove("spot");
+          card.querySelector(".tag")?.remove();
+        }, 2600);
+      }
+
+      function burst(x, y, n = 24) {
+        if (reduce) return;
+        for (let i = 0; i < n; i++) {
+          const p = document.createElement("i");
+          const s = 8 + Math.random() * 10, a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 140;
+          p.className = "bit";
+          p.style.cssText = `left:${x - s / 2}px;top:${y - s / 2}px;width:${s}px;height:${Math.random() < 0.5 ? s : s / 2}px;background:${COLORS[i % COLORS.length]};border-radius:${Math.random() < 0.35 ? "50%" : "3px"}`;
+          fx.append(p);
+          p.animate(
+            [
+              { transform: "translate(0, 0) rotate(0deg)", opacity: 1 },
+              { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d + 80}px) rotate(${Math.random() * 720 - 360}deg)`, opacity: 0 },
+            ],
+            { duration: 800 + Math.random() * 600, easing: "cubic-bezier(.15,.75,.3,1)" }
+          ).onfinish = () => p.remove();
+        }
+      }
+
+      // Rasu says it in the speech bubble; an Undo button shows when there's something to undo
+      function toast(msg, undo, mood = "grin") {
+        clearTimeout(toastTimer);
+        toastEl.classList.add("show");
+        $("#toastMsg").textContent = msg;
+        const btn = $("#toastUndo");
+        btn.hidden = !undo;
+        btn.onclick = () => {
+          toastEl.classList.remove("show");
+          undo();
+        };
+        petMood(mood);
+        hop(mood === "sad" ? "shake" : "hop");
+        toastTimer = setTimeout(() => toastEl.classList.remove("show"), undo ? 5000 : 3000);
+      }
+
+      function swing() {
+        sign.classList.remove("swing");
+        void sign.offsetWidth;
+        sign.classList.add("swing");
+      }
+
+      // ---------- Dialog ----------
+      const tint = (cat) => dlg.style.setProperty("--c", CATS[cat].color);
+
+      function paintStars() {
+        fStars.querySelectorAll("button").forEach((b) => {
+          const v = Number(b.dataset.v);
+          b.classList.toggle("on", v <= formRating);
+          b.setAttribute("aria-pressed", v === formRating);
+        });
+        $("#rateTxt").textContent = RATE_WORDS[formRating];
+      }
+
+      function openDialog(id = null, cat = "") {
+        const it = vault.find((x) => x.id === id);
+        editingId = it ? it.id : null;
+        form.reset();
+        const c = it?.category || cat || (filter !== "all" ? filter : "book");
+        form.elements.cat.value = c;
+        tint(c);
+        fTitle.value = it?.title ?? "";
+        fCreator.value = it?.creator ?? "";
+        fNote.value = it?.note ?? "";
+        formRating = it?.rating ?? 0;
+        paintStars();
+        formPhoto = null;
+        formCleared = false;
+        setPreview("");
+        if (it?.photo) photoURL(it.id).then((u) => editingId === it.id && setPreview(u));
+        $("#more").open = !!it;
+        $("#dlgTitle").textContent = it ? "Edit interest" : "New interest";
+        $("#fSubmit").textContent = it ? "Save changes" : "Save to vault";
+        dlg.showModal();
+      }
+
+      let busy = false;
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (busy) return;
+        busy = true;
+        const data = {
+          category: form.elements.cat.value,
+          title: fTitle.value.trim(),
+          creator: fCreator.value.trim(),
+          note: fNote.value.trim(),
+          rating: formRating,
+        };
+        const editing = vault.find((x) => x.id === editingId);
+        let id;
+        if (editing) {
+          Object.assign(editing, data);
+          id = editing.id;
+        } else {
+          id = Math.max(Date.now(), ...vault.map((x) => x.id + 1));
+          vault.push({ id, added: Date.now(), ...data });
+        }
+        const item = vault.find((x) => x.id === id);
+        if (formPhoto) {
+          try {
+            await idb("readwrite", (s) => s.put(formPhoto, id));
+            cachePhoto(id, tempURL);
+            tempURL = "";
+            item.photo = true;
+          } catch {
+            toast("I couldn't keep that photo, sorry.", null, "sad");
+          }
+        } else if (formCleared && item.photo) {
+          item.photo = false;
+          dropPhoto(id);
+        }
+        const auto = AUTO_PHOTOS && !editing && !item.photo; // new item, no photo chosen: find one automatically
+        if (auto) fetching.add(id); // the card shows a shimmer meanwhile
+        save();
+        busy = false;
+        dlg.close();
+
+        // Make sure the saved item is on screen
+        if ((filter !== "all" && filter !== data.category) || !matches(data, q.value.trim().toLowerCase())) {
+          q.value = "";
+          setFilter(data.category, true);
+        } else {
+          render(false, editing ? null : id);
+        }
+
+        if (auto) autoPhoto(id, true);
+        if (editing) return toast(formPhoto ? "Ooh, sharp new photo ✦" : "Changes saved ✦");
+        const card = grid.querySelector(`[data-id="${id}"]`);
+        if (card) setTimeout(() => spotlight(card, "Fresh in ✦"), reduce ? 0 : 450);
+        toast(`Ooh, new ${CATS[data.category].one.toLowerCase()}!`);
+      });
+
+      $("#picks").addEventListener("change", (e) => tint(e.target.value));
+      fStars.addEventListener("click", (e) => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        const v = Number(b.dataset.v);
+        formRating = formRating === v ? 0 : v;
+        paintStars();
+      });
+      $("#dlgClose").addEventListener("click", () => dlg.close());
+
+      // ---------- Photos: downscaled to 1200px JPEG (crisp on retina) and kept in IndexedDB ----------
+      const dbReady = new Promise((res, rej) => {
+        const r = indexedDB.open("rasa", 1);
+        r.onupgradeneeded = () => r.result.createObjectStore("photos");
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => rej(r.error);
+      });
+      dbReady.catch(() => {});
+      const idb = (mode, fn) =>
+        dbReady.then((d) => new Promise((res, rej) => {
+          const t = d.transaction("photos", mode), req = fn(t.objectStore("photos"));
+          t.oncomplete = () => res(req.result);
+          t.onerror = t.onabort = () => rej(t.error);
+        }));
+      const photoCache = new Map(); // id -> Promise of an object URL ("" when missing)
+      const photoURL = (id) => {
+        if (!photoCache.has(id)) photoCache.set(id, idb("readonly", (s) => s.get(id)).then((b) => (b ? URL.createObjectURL(b) : "")).catch(() => ""));
+        return photoCache.get(id);
+      };
+      function cachePhoto(id, url) {
+        photoCache.get(id)?.then((u) => u && u !== url && URL.revokeObjectURL(u));
+        if (url) photoCache.set(id, Promise.resolve(url));
+        else photoCache.delete(id);
+      }
+      function dropPhoto(id) {
+        cachePhoto(id, "");
+        idb("readwrite", (s) => s.delete(id)).catch(() => {});
+      }
+      // Clear photos whose items no longer exist
+      idb("readonly", (s) => s.getAllKeys())
+        .then((keys) => keys.forEach((k) => vault.some((x) => x.id === k && x.photo) || idb("readwrite", (s) => s.delete(k))))
+        .catch(() => {});
+
+      async function shrink(file, max = 1200) {
+        if (!file?.type.startsWith("image/")) throw new Error("not an image");
+        const src = URL.createObjectURL(file);
+        try {
+          const img = new Image();
+          img.src = src;
+          await img.decode();
+          const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+          const c = Object.assign(document.createElement("canvas"), { width: Math.round(img.naturalWidth * k), height: Math.round(img.naturalHeight * k) });
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.imageSmoothingQuality = "high";
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          return await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("encode failed"))), "image/jpeg", 0.9));
+        } finally {
+          URL.revokeObjectURL(src);
+        }
+      }
+
+      const dropTile = $("#drop");
+      let formPhoto = null, formCleared = false, tempURL = "";
+      function setPreview(url) {
+        const img = $("#fPreview");
+        img.hidden = !url;
+        if (url) img.src = url;
+        else img.removeAttribute("src");
+        $("#photoX").hidden = !url;
+        dropTile.classList.toggle("has", !!url);
+      }
+      async function takePhoto(file) {
+        try {
+          formPhoto = await shrink(file);
+          formCleared = false;
+          if (tempURL) URL.revokeObjectURL(tempURL);
+          tempURL = URL.createObjectURL(formPhoto);
+          setPreview(tempURL);
+        } catch {
+          $("#dropTxt").textContent = "Try another";
+          setTimeout(() => ($("#dropTxt").textContent = "Photo"), 2000);
+        }
+      }
+      async function setCardPhoto(id, file) {
+        const it = vault.find((x) => x.id === id);
+        try {
+          const blob = await shrink(file);
+          await idb("readwrite", (s) => s.put(blob, id));
+          cachePhoto(id, URL.createObjectURL(blob));
+          it.photo = true;
+          save();
+          render(false);
+          toast("Ooh, sharp new photo ✦");
+        } catch {
+          toast("I couldn't use that image.", null, "o");
+        }
+      }
+      // "+ Photo" on a card opens the file picker for that card
+      const cardFile = Object.assign(document.createElement("input"), { type: "file", accept: "image/*", hidden: true });
+      document.body.append(cardFile);
+      function pickPhotoFor(id) {
+        cardFile.dataset.id = id;
+        cardFile.value = "";
+        cardFile.click();
+      }
+      cardFile.addEventListener("change", () => {
+        if (cardFile.files[0]) setCardPhoto(Number(cardFile.dataset.id), cardFile.files[0]);
+      });
+      $("#fPhoto").addEventListener("change", (e) => {
+        takePhoto(e.target.files[0]);
+        e.target.value = "";
+      });
+      $("#photoX").addEventListener("click", () => {
+        formPhoto = null;
+        formCleared = true;
+        setPreview("");
+      });
+      dlg.addEventListener("paste", (e) => {
+        const f = [...(e.clipboardData?.files || [])].find((f) => f.type.startsWith("image/"));
+        if (!f) return;
+        e.preventDefault();
+        takePhoto(f);
+      });
+      dlg.addEventListener("close", () => {
+        if (tempURL) URL.revokeObjectURL(tempURL);
+        tempURL = "";
+        dropTile.classList.remove("over");
+      });
+      // Drop a photo on a card to change its photo, anywhere else to start a new interest with it
+      addEventListener("dragover", (e) => {
+        if (!e.dataTransfer?.types.includes("Files")) return;
+        e.preventDefault();
+        dropTile.classList.add("over");
+      });
+      addEventListener("dragleave", (e) => e.relatedTarget || dropTile.classList.remove("over"));
+      addEventListener("drop", (e) => {
+        if (!e.dataTransfer?.files.length) return;
+        e.preventDefault();
+        dropTile.classList.remove("over");
+        const f = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
+        if (!f) return toast("Only photos fit in the vault.", null, "o");
+        const card = !dlg.open && e.target.closest?.(".card");
+        if (card) return setCardPhoto(Number(card.dataset.id), f);
+        if (!dlg.open) openDialog();
+        takePhoto(f);
+      });
+
+      // ---------- Auto photo: one search per press (never per keystroke), cached per title ----------
+      // [search filter, result kind to keep]. Apple's movie filter returns nothing right now, so films search everything and keep "feature-movie"
+      const ITUNES = { music: ["media=music&entity=album"], movie: ["media=all", "feature-movie"], series: ["media=tvShow&entity=tvSeason"], book: ["media=ebook&entity=ebook"] };
+      const country = (navigator.language.split("-")[1] || "us").toLowerCase();
+      const photoQueries = new Map(); // "category|title|creator" -> Promise<Blob | null>
+      const fetching = new Set(); // item ids waiting for a photo
+      const AUTO_PHOTOS = true; // the shared copy sets this to false: its host blocks calls to outside services
+      if (!AUTO_PHOTOS) $("#drop small").remove();
+
+      async function fetchArt({ category: cat, title, creator }) {
+        const signal = AbortSignal.timeout(9000);
+        const get = (u, as = "json") => fetch(u, { signal }).then((r) => (r.ok ? r[as]() : Promise.reject(new Error(r.status))));
+        const enc = encodeURIComponent;
+        const sources = [
+          // Web series: TVmaze knows streaming shows and has large posters
+          cat === "series" && (async () => (await get(`https://api.tvmaze.com/singlesearch/shows?q=${enc(title)}`)).image?.original),
+          // Apple's catalogue: sharp 1200px artwork. Local store first, then without the creator, then the US store
+          async () => {
+            const tries = [[`${title} ${creator}`.trim(), country], [title, country], [title, "us"]];
+            for (const [term, store] of new Map(tries.map((t) => [t.join("|"), t])).values()) {
+              const [filter, kind] = ITUNES[cat];
+              const hits = (await get(`https://itunes.apple.com/search?${filter}&limit=${kind ? 15 : 1}&country=${store}&term=${enc(term)}`)).results || [];
+              const art = hits.find((h) => !kind || h.kind === kind)?.artworkUrl100;
+              if (art) return art.replace(/\d+x\d+bb/, "1200x1200bb");
+            }
+          },
+          // Books: Open Library covers as a fallback
+          cat === "book" && (async () => {
+            const id = (await get(`https://openlibrary.org/search.json?limit=1&fields=cover_i&q=${enc(`${title} ${creator}`)}`)).docs?.[0]?.cover_i;
+            return id && `https://covers.openlibrary.org/b/id/${id}-L.jpg`;
+          }),
+        ].filter(Boolean);
+        let failed = false;
+        for (const source of sources) {
+          const url = await source().catch(() => (failed = true) && "");
+          if (url) return get(url, "blob");
+        }
+        if (failed) throw new Error("lookup failed"); // not cached, so the next press retries
+        return null;
+      }
+
+      function findPhoto(it) {
+        const key = [it.category, it.title, it.creator].join("|").toLowerCase();
+        if (!photoQueries.has(key)) {
+          photoQueries.set(key, fetchArt(it).catch((e) => {
+            photoQueries.delete(key);
+            throw e;
+          }));
+        }
+        return photoQueries.get(key);
+      }
+
+      async function autoPhoto(id, prepped = false) {
+        const it = vault.find((x) => x.id === id);
+        if (!it || it.photo || (!prepped && fetching.has(id))) return;
+        if (!prepped) {
+          fetching.add(id);
+          flipped.delete(id);
+          render(false);
+          toast("Hunting for a stunning shot…");
+        }
+        let url = "";
+        try {
+          const small = await shrink(await findPhoto(it));
+          if (vault.includes(it) && !it.photo) {
+            await idb("readwrite", (s) => s.put(small, id));
+            url = URL.createObjectURL(small);
+            cachePhoto(id, url);
+            it.photo = true;
+            save();
+          }
+        } catch {}
+        fetching.delete(id);
+        // Update the card in place so a running spotlight isn't interrupted
+        const cover = grid.querySelector(`[data-id="${id}"] .cover`);
+        if (cover) {
+          cover.classList.remove("loading");
+          if (url) cover.innerHTML = `<span class="art"><img class="fresh" src="${url}" alt="" /></span>`;
+        }
+        toast(url ? "Found a stunning shot ✦" : "No photo found. Drop one on the card?", null, url ? "grin" : "o");
+      }
+      // Close on a backdrop click, but not when a text selection drag ends outside the box
+      let downOnBackdrop = false;
+      dlg.addEventListener("pointerdown", (e) => (downOnBackdrop = e.target === dlg));
+      dlg.addEventListener("click", (e) => {
+        if (downOnBackdrop && e.target === dlg) dlg.close();
+      });
+
+      // ---------- Events ----------
+      grid.addEventListener("click", (e) => {
+        if (e.target.closest("[data-clear]")) {
+          q.value = "";
+          return render();
+        }
+        const add = e.target.closest("[data-add]");
+        if (add) return openDialog(null, add.dataset.add);
+        const card = e.target.closest(".card");
+        if (!card) return;
+        const id = Number(card.dataset.id);
+        const actEl = e.target.closest("[data-act]");
+        const act = actEl?.dataset.act;
+        if (act === "del") removeItem(id, card);
+        else if (act === "edit") openDialog(id);
+        else if (act === "auto") autoPhoto(id);
+        else if (act === "photo") pickPhotoFor(id);
+        else if (act === "rate") rate(id, Number(actEl.dataset.v));
+        else flip(card);
+      });
+
+      grid.addEventListener("keydown", (e) => {
+        if (e.target.classList.contains("card") && (e.key === "Enter" || e.key === " ")) {
+          e.preventDefault();
+          flip(e.target);
+        }
+      });
+
+      filtersEl.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-f]");
+        if (b) setFilter(b.dataset.f);
+      });
+
+      let searchTimer; // redraw once typing pauses, not on every keystroke
+      q.addEventListener("input", () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => render(false), 140);
+      });
+      q.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        if (q.value) {
+          q.value = "";
+          render(false);
+        } else q.blur();
+      });
+
+      document.addEventListener("keydown", (e) => {
+        if (dlg.open || e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
+        const k = e.key.toLowerCase();
+        if (k === "/") {
+          e.preventDefault();
+          q.focus();
+        } else if (k === "n") {
+          e.preventDefault();
+          openDialog();
+        } else if (k === "r") surprise();
+      });
+
+      sign.addEventListener("click", () => {
+        swing();
+        q.value = "";
+        setFilter("all");
+      });
+      sign.addEventListener("animationend", () => sign.classList.remove("swing"));
+      addBtn.addEventListener("click", () => openDialog());
+      surpriseBtn.addEventListener("click", surprise);
+
+      // ---------- Rasu, the vault pet ----------
+      const pet = $("#pet"), mouth = $("#mouth");
+      const MOUTHS = {
+        happy: ["M34 53Q40 59 46 53", "none"],
+        grin: ["M33 52Q40 62 47 52Z", "#111"],
+        sad: ["M34 58Q40 52 46 58", "none"],
+        o: ["M37 56a3 3 0 1 0 6 0a3 3 0 1 0-6 0", "#111"],
+        flat: ["M35 56h10", "none"],
+      };
+      const SHELF_TALK = { all: "Everything, all at once!", music: "Turn it up! ♪", book: "Shh… reading.", series: "Just one more episode…", movie: "Popcorn time!" };
+      const QUIPS = ["Hehe, that tickles!", "Pat pat ✦", "I guard the vault. Mostly I nap.", "Found a new favourite lately?", "Press R and I'll pick something.", "You have great taste, you know."];
+      let moodTimer, sleepTimer, gazeTimer, gaze = null, asleep = false, raf = 0;
+      let mx = innerWidth / 2, my = innerHeight / 2, lastMove = 0;
+
+      function petMood(m, ms = 2400) {
+        clearTimeout(moodTimer);
+        mouth.setAttribute("d", MOUTHS[m][0]);
+        mouth.setAttribute("fill", MOUTHS[m][1]);
+        if (ms) moodTimer = setTimeout(() => petMood(asleep ? "flat" : "happy", 0), ms);
+      }
+
+      function hop(kind = "hop") {
+        pet.classList.remove("hop", "shake");
+        void pet.offsetWidth;
+        pet.classList.add(kind);
+      }
+      pet.addEventListener("animationend", (e) => {
+        if (e.target === pet) pet.classList.remove("hop", "shake");
+      });
+
+      // Eyes follow the pointer, or whatever Rasu is told to look at
+      function look() {
+        raf = 0;
+        const r = pet.getBoundingClientRect();
+        const [x, y] = gaze || [mx, my];
+        const dx = x - (r.left + r.width / 2), dy = y - (r.top + r.height / 2);
+        const dist = Math.hypot(dx, dy) || 1, k = (Math.min(1, dist / 160) * 3.5) / dist;
+        pet.style.setProperty("--px", `${dx * k}px`);
+        pet.style.setProperty("--py", `${dy * k}px`);
+      }
+      const lookSoon = () => raf || (raf = requestAnimationFrame(look));
+      function lookAt(x, y, ms = 2500) {
+        clearTimeout(gazeTimer);
+        gaze = [x, y];
+        lookSoon();
+        gazeTimer = setTimeout(() => {
+          gaze = null;
+          lookSoon();
+        }, ms);
+      }
+
+      // Falls asleep after 40s of quiet and wakes on any activity
+      function wake() {
+        clearTimeout(sleepTimer);
+        sleepTimer = setTimeout(() => {
+          asleep = true;
+          pet.classList.add("asleep");
+          toastEl.classList.remove("show");
+          petMood("flat", 0);
+        }, 40000);
+        if (!asleep) return;
+        asleep = false;
+        pet.classList.remove("asleep");
+        toast("Oh! I'm up, I'm up.", null, "o");
+      }
+      ["pointerdown", "keydown", "scroll"].forEach((t) => addEventListener(t, wake, { passive: true }));
+      addEventListener("pointermove", (e) => {
+        mx = e.clientX;
+        my = e.clientY;
+        lastMove = Date.now();
+        lookSoon();
+        wake();
+      }, { passive: true });
+
+      // Blinks, and glances around by itself when the mouse is still
+      (function idle() {
+        setTimeout(() => {
+          if (!asleep) {
+            pet.classList.add("blink");
+            setTimeout(() => pet.classList.remove("blink"), 150);
+            if (Date.now() - lastMove > 4000 && Math.random() < 0.4) lookAt(Math.random() * innerWidth, Math.random() * innerHeight, 1500);
+          }
+          idle();
+        }, 2000 + Math.random() * 4000);
+      })();
+
+      function hearts() {
+        if (reduce) return;
+        const r = pet.getBoundingClientRect();
+        for (let i = 0; i < 6; i++) {
+          const h = document.createElement("i");
+          h.className = "heart";
+          h.textContent = "♥";
+          h.style.cssText = `left:${r.left + r.width / 2}px;top:${r.top}px;color:${COLORS[i % COLORS.length]}`;
+          fx.append(h);
+          h.animate(
+            [
+              { transform: "translate(-50%, 0) scale(.6)", opacity: 1 },
+              { transform: `translate(calc(-50% + ${Math.random() * 90 - 45}px), ${-50 - Math.random() * 50}px) scale(1.2) rotate(${Math.random() * 60 - 30}deg)`, opacity: 0 },
+            ],
+            { duration: 900 + Math.random() * 400, easing: "ease-out" }
+          ).onfinish = () => h.remove();
+        }
+      }
+
+      pet.addEventListener("click", () => {
+        hearts();
+        toast(QUIPS[Math.floor(Math.random() * QUIPS.length)]);
+      });
+
+      // ---------- Start ----------
+      setFilter("all", true);
+      wake();
+      const hour = new Date().getHours();
+      setTimeout(() => toast(hour < 5 ? "Up late? Me too." : hour < 12 ? "Good morning! ☀" : hour < 17 ? "Good afternoon!" : "Good evening ✦"), 1300);
+    </script>
+  </body>
+</html>
