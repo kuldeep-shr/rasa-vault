@@ -2,6 +2,8 @@
 
 A pocket museum for the music, books, web series and movies that moved you. Rasa is a single HTML file, with no build step, no backend and no account.
 
+**Live demo:** [kuldeep-shr.github.io/rasa-vault](https://kuldeep-shr.github.io/rasa-vault/)
+
 ![Rasa showing four cards with title posters and Rasu the pet sitting on the dock](docs/screenshot.png)
 
 ## Features
