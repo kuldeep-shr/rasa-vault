@@ -13,7 +13,8 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Covers that keep their shape.** Album sleeves get a vinyl record, posters sit on a film strip, and books get a spine and pages. Nothing is cropped.
 - **Photos your way.** Upload, paste or drop an image onto a card, or let Rasa look one up when you save. Anything without a photo gets a poster made from its title.
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
-- **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick.
+- **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.
+- **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
 
 ## Run it
