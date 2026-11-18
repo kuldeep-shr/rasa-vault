@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>Rasa · Digital Vault</title>
     <meta name="description" content="Rasa is a pocket museum for the music, books, web series and movies that moved you." />
     <meta name="theme-color" content="#111111" />
@@ -17,6 +17,8 @@
         --blue: #90a8ff; --yellow: #ffc900; --purple: #b185db;
         --bg: #e2dcd0; --dots: rgba(17, 17, 17, 0.18);
         --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        /* Side gutter: widens on bigger screens and keeps clear of notches in landscape */
+        --gutter: max(clamp(16px, 3vw, 40px), env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
         /* Chunky arrow cursors: yellow by default, pink over anything clickable */
         --cur: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M3 3l11 26 4-11 11-4z' fill='%23FFC900' stroke='%23111' stroke-width='3' stroke-linejoin='round'/></svg>") 3 3, auto;
         --cur-hot: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M3 3l11 26 4-11 11-4z' fill='%23FF90E8' stroke='%23111' stroke-width='3' stroke-linejoin='round'/></svg>") 3 3, pointer;
@@ -28,9 +30,10 @@
       *, *::before, *::after { box-sizing: border-box; margin: 0; }
       [hidden] { display: none !important; }
       body {
-        min-height: 100vh; padding-bottom: 150px; overflow-x: clip;
+        min-height: 100vh; padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); overflow-x: clip;
         font-family: "Space Grotesk", system-ui, sans-serif; font-size: 16px; color: var(--ink); background: var(--bg);
         cursor: var(--cur); transition: background-color 0.5s ease; -webkit-font-smoothing: antialiased;
+        -webkit-tap-highlight-color: transparent; /* buttons have their own press effect instead of the browser's tap flash */
       }
       body::before {
         content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
@@ -45,7 +48,7 @@
       :focus-visible { outline: 3px dashed var(--ink); outline-offset: 3px; }
       fieldset { min-width: 0; padding: 0; border: 0; }
       .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-      .wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+      .wrap { width: min(1180px, 100% - 2 * var(--gutter)); margin-inline: auto; }
 
       /* ---------- Buttons ---------- */
       .btn {
@@ -54,7 +57,8 @@
         box-shadow: 4px 4px 0 var(--ink); font-size: 14px; font-weight: 700; letter-spacing: 0.06em;
         text-transform: uppercase; white-space: nowrap; transition: transform 0.15s, box-shadow 0.15s;
       }
-      .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+      /* Hover effects are kept to mice and trackpads: on touch screens :hover sticks after a tap */
+      @media (hover: hover) { .btn:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); } }
       .btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--ink); }
       .btn.pink { --c: var(--pink); }
       .btn.mint { --c: var(--mint); }
@@ -65,7 +69,7 @@
         border: 2px solid var(--ink); border-radius: 50%; font-size: 12px; font-weight: 700;
         transition: background-color 0.15s, color 0.15s, transform 0.25s var(--spring);
       }
-      .x:hover { background: var(--ink); color: #fff; transform: rotate(90deg); }
+      @media (hover: hover) { .x:hover { background: var(--ink); color: #fff; transform: rotate(90deg); } }
       kbd {
         padding: 0 6px; background: var(--paper); border: 2px solid var(--ink); border-bottom-width: 4px;
         border-radius: 6px; font-family: inherit; font-size: 12px; font-weight: 700;
@@ -77,7 +81,7 @@
         font-size: clamp(15px, 2vw, 21px); font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;
       }
       .mq-track { display: flex; width: max-content; animation: marquee 50s linear infinite; }
-      .marquee:hover .mq-track { animation-play-state: paused; }
+      @media (hover: hover) { .marquee:hover .mq-track { animation-play-state: paused; } }
       .mq-half { display: flex; flex-shrink: 0; align-items: center; }
       .mq-half span { padding: 0 20px; color: var(--yellow); white-space: nowrap; }
       .mq-half span:nth-of-type(4n + 2) { color: var(--pink); }
@@ -88,7 +92,7 @@
 
       /* ---------- Hanging sign ---------- */
       .hero { display: flex; flex-direction: column; align-items: center; padding: 46px 0 30px; }
-      .rod { position: relative; width: 240px; height: 12px; background: var(--ink); border-radius: 99px; }
+      .rod { position: relative; width: min(240px, 100% - 24px); height: 12px; background: var(--ink); border-radius: 99px; }
       .rod::before, .rod::after { content: ""; position: absolute; top: -4px; width: 20px; height: 20px; background: var(--ink); border-radius: 50%; }
       .rod::before { left: -8px; }
       .rod::after { right: -8px; }
@@ -97,7 +101,7 @@
         background: var(--yellow); border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink);
         transform: rotate(6deg); transform-origin: 50% -16px; transition: transform 0.7s var(--spring);
       }
-      .sign:hover { transform: rotate(0deg); }
+      @media (hover: hover) { .sign:hover { transform: rotate(0deg); } }
       .sign.swing { animation: swing 1.6s ease-out; }
       @keyframes swing {
         0% { transform: rotate(6deg); } 18% { transform: rotate(-14deg); } 36% { transform: rotate(10deg); }
@@ -121,13 +125,13 @@
       /* ---------- Toolbar ---------- */
       .toolbar { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; margin-bottom: 18px; }
       .search {
-        display: flex; flex: 1 1 300px; align-items: center; gap: 10px; max-width: 520px; padding: 0 12px;
+        display: flex; flex: 1 1 300px; align-items: center; gap: 10px; min-width: 0; max-width: 520px; padding: 0 12px;
         background: #fff; border: 3px solid var(--ink); border-radius: 14px; box-shadow: 6px 6px 0 var(--ink);
         transition: transform 0.15s, box-shadow 0.15s;
       }
       .search:focus-within { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--ink); outline: 3px dashed var(--ink); outline-offset: 4px; }
       .search svg { flex-shrink: 0; width: 22px; height: 22px; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; }
-      .search input { flex: 1; min-width: 0; padding: 13px 0; background: none; border: 0; outline: 0; font-size: 16px; font-weight: 600; }
+      .search input { flex: 1; min-width: 0; padding: 13px 0; background: none; border: 0; outline: 0; font-size: 16px; font-weight: 600; text-overflow: ellipsis; }
       .search input::placeholder { color: #777; }
       .stats { margin-bottom: 32px; text-align: center; }
       .stats span {
@@ -136,12 +140,17 @@
       }
 
       /* ---------- Cards (flip to see the note) ---------- */
-      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 34px 28px; }
-      .card { position: relative; display: grid; perspective: 1200px; transform: rotate(var(--tilt)); transition: transform 0.35s var(--spring); }
-      .card:hover, .card:focus-visible { transform: rotate(0deg) translate(-3px, -5px); }
-      .card:focus-visible { outline-offset: 8px; }
+      /* 1 column on phones, 2 on small tablets, 3 on iPad portrait, 4 from iPad landscape up.
+         220px is the narrowest a card gets while the "Web Series" label still fits its bar. */
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 220px), 1fr)); gap: 34px clamp(18px, 2.5vw, 28px); }
+      .card {
+        position: relative; display: grid; perspective: 1200px; transform: rotate(calc(var(--tilt) * var(--tilt-k, 1)));
+        transition: transform 0.35s var(--spring);
+      }
+      .card:focus-visible { outline-offset: 8px; transform: rotate(0deg) translate(-3px, -5px); }
+      @media (hover: hover) { .card:hover { transform: rotate(0deg) translate(-3px, -5px); } }
       .card.pop { animation: pop 0.5s var(--spring) backwards; animation-delay: calc(var(--i) * 55ms); }
-      @keyframes pop { from { opacity: 0; transform: translateY(26px) scale(0.9) rotate(var(--tilt)); } }
+      @keyframes pop { from { opacity: 0; transform: translateY(26px) scale(0.9) rotate(calc(var(--tilt) * var(--tilt-k, 1))); } }
       .card.spot { z-index: 2; animation: wiggle 0.45s ease-in-out 3; }
       @keyframes wiggle {
         0%, 100% { transform: scale(1.04) rotate(0deg); }
@@ -155,8 +164,8 @@
         border: 3px solid var(--ink); border-radius: 16px; box-shadow: 6px 6px 0 var(--ink);
         -webkit-backface-visibility: hidden; backface-visibility: hidden; transition: box-shadow 0.3s;
       }
-      .card:hover .face, .card.spot .face { box-shadow: 10px 10px 0 var(--ink); }
-      .card.spot .face { outline: 4px dashed var(--ink); outline-offset: 6px; }
+      @media (hover: hover) { .card:hover .face { box-shadow: 10px 10px 0 var(--ink); } }
+      .card.spot .face { box-shadow: 10px 10px 0 var(--ink); outline: 4px dashed var(--ink); outline-offset: 6px; }
       .back { background: var(--paper); transform: rotateY(180deg); }
       .front::after {
         content: ""; position: absolute; top: -13px; left: 50%; width: 66px; height: 24px; margin-left: -33px;
@@ -181,7 +190,7 @@
       .back .body { gap: 14px; }
       .icon { width: 84px; height: 84px; margin-bottom: 10px; transition: transform 0.35s var(--spring); }
       .icon svg { display: block; width: 100%; height: 100%; overflow: visible; }
-      .card:hover .icon { transform: scale(1.12) rotate(-6deg); }
+      @media (hover: hover) { .card:hover .icon { transform: scale(1.12) rotate(-6deg); } }
       /* Artwork sits on a mat in its natural shape (square sleeves, tall posters), never cropped */
       .cover {
         position: relative; display: flex; align-items: center; justify-content: center; aspect-ratio: 1 / 0.9; max-width: 100%;
@@ -189,7 +198,7 @@
       }
       .cover + .body { padding-top: 14px; }
       .art { position: relative; isolation: isolate; display: block; height: 100%; max-width: 100%; transition: transform 0.35s var(--spring); }
-      .card:hover .art { transform: translateY(-4px); }
+      @media (hover: hover) { .card:hover .art { transform: translateY(-4px); } }
       .art img, .gen { display: block; height: 100%; border: 3px solid var(--ink); border-radius: 6px; box-shadow: 5px 5px 0 var(--ink); }
       .art img { width: auto; max-width: 100%; object-fit: contain; background: var(--paper); }
       .gen {
@@ -210,7 +219,7 @@
         border: 2px solid var(--ink); border-radius: 99px; box-shadow: 2px 2px 0 var(--ink);
         font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
       }
-      .add-photo:hover { background: var(--yellow); }
+      @media (hover: hover) { .add-photo:hover { background: var(--yellow); } }
       /* Music: the record slides out of its sleeve */
       .card[data-cat="music"] .art { height: 84%; translate: -11% 0; }
       .card[data-cat="music"] .gen { aspect-ratio: 1; }
@@ -219,7 +228,7 @@
         border: 3px solid var(--ink); transition: right 0.5s var(--spring);
         background: radial-gradient(circle, var(--c) 0 15%, var(--ink) 16% 18%, #333 19% 30%, #111 31% 33%, #333 34% 47%, #111 48%);
       }
-      .card[data-cat="music"]:hover .art::before { right: -38%; }
+      @media (hover: hover) { .card[data-cat="music"]:hover .art::before { right: -38%; } }
       /* Movies: the poster runs on a film strip */
       .card[data-cat="movie"] .cover {
         background:
@@ -261,7 +270,7 @@
         content: "flip ↻"; position: absolute; left: 14px; bottom: 9px; opacity: 0; transition: opacity 0.2s;
         font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
       }
-      .card:hover .front .body::after { opacity: 0.45; }
+      @media (hover: hover) { .card:hover .front .body::after { opacity: 0.45; } }
       .note { font-size: 15px; font-weight: 500; line-height: 1.45; overflow-wrap: anywhere; }
       .note::before {
         content: "\201C"; display: block; height: 30px; color: var(--c);
@@ -290,9 +299,12 @@
         transition: transform 0.2s var(--spring), color 0.1s;
       }
       .rate button.on { color: var(--yellow); }
-      .rate:hover button { color: #fff; }
-      .rate:hover button:hover, .rate:hover button:has(~ button:hover) { color: var(--yellow); }
-      .rate button:hover { transform: scale(1.25) rotate(-10deg); }
+      /* Hover previews the rating; on touch a stuck preview would show the wrong number of stars */
+      @media (hover: hover) {
+        .rate:hover button { color: #fff; }
+        .rate:hover button:hover, .rate:hover button:has(~ button:hover) { color: var(--yellow); }
+        .rate button:hover { transform: scale(1.25) rotate(-10deg); }
+      }
       .rate-row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
       .rate-txt { color: #555; font-size: 13px; font-weight: 700; }
 
@@ -312,28 +324,37 @@
       /* ---------- Dock ---------- */
       .dock {
         position: fixed; z-index: 40; left: 0; right: 0; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 10px;
-        width: max-content; max-width: calc(100% - 24px); margin: 0 auto; padding: 4px 10px 4px 4px;
+        width: max-content; max-width: calc(100% - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px));
+        margin: 0 auto; padding: 4px 10px 4px 4px;
         background: var(--ink); border: 3px solid #fff; border-radius: 20px; box-shadow: 8px 8px 0 var(--pink);
-        transition: box-shadow 0.2s;
+        transition: box-shadow 0.2s, opacity 0.2s, transform 0.25s;
       }
-      .dock:hover { box-shadow: 11px 11px 0 var(--pink); }
+      @media (hover: hover) { .dock:hover { box-shadow: 11px 11px 0 var(--pink); } }
       .dock :focus-visible { outline-color: #fff; }
-      .filters { display: flex; gap: 8px; min-width: 0; padding: 10px 8px; overflow-x: auto; scrollbar-width: none; }
+      /* On narrow screens the shelves scroll sideways; the script fades whichever edge has more of them */
+      .filters {
+        --fade-l: #000; --fade-r: #000;
+        display: flex; gap: 8px; min-width: 0; padding: 10px 8px; overflow-x: auto; scrollbar-width: none;
+        -webkit-mask-image: linear-gradient(90deg, var(--fade-l), #000 28px calc(100% - 28px), var(--fade-r));
+        mask-image: linear-gradient(90deg, var(--fade-l), #000 28px calc(100% - 28px), var(--fade-r));
+      }
+      .filters.fade-l { --fade-l: transparent; }
+      .filters.fade-r { --fade-r: transparent; }
       .filters::-webkit-scrollbar { display: none; }
       .f {
         --c: #fff; display: flex; flex-shrink: 0; align-items: center; gap: 8px; padding: 8px 10px 8px 13px;
         background: var(--c); border: 2px solid var(--ink); border-radius: 12px; font-size: 13px; font-weight: 700;
         letter-spacing: 0.06em; text-transform: uppercase; transition: transform 0.2s var(--spring), box-shadow 0.2s;
       }
-      .f:hover { transform: translateY(-2px); }
+      @media (hover: hover) { .f:hover { transform: translateY(-2px); } }
       .f[aria-pressed="true"] { transform: translateY(-2px); box-shadow: 0 0 0 3px var(--ink), 0 0 0 6px #fff; }
       .f .n { min-width: 22px; padding: 1px 6px; background: var(--ink); color: #fff; border-radius: 99px; font-size: 11px; text-align: center; }
       .sep { flex-shrink: 0; width: 3px; height: 30px; background: rgba(255, 255, 255, 0.3); border-radius: 3px; }
       .dock > .btn { flex-shrink: 0; box-shadow: 3px 3px 0 #fff; }
-      .dock > .btn:hover { box-shadow: 5px 5px 0 #fff; }
+      @media (hover: hover) { .dock > .btn:hover { box-shadow: 5px 5px 0 #fff; } }
       .dock > .btn:active { box-shadow: 0 0 0 #fff; }
       .plus { display: inline-block; font-size: 20px; line-height: 0; transition: transform 0.3s var(--spring); }
-      .add:hover .plus { transform: rotate(90deg); }
+      @media (hover: hover) { .add:hover .plus { transform: rotate(90deg); } }
       .add.nudge { animation: nudge 1.4s ease-in-out infinite; }
       @keyframes nudge { 50% { transform: translateY(-4px) rotate(-3deg); } }
 
@@ -378,14 +399,19 @@
       .bit { position: absolute; border: 2px solid var(--ink); }
 
       /* ---------- Dialog ---------- */
+      /* margin: auto is what centres a modal dialog; the * reset above removes it, so it is set again here.
+         When the form is taller than the screen (landscape phones, an open keyboard) it scrolls inside the dialog. */
       dialog {
-        --c: var(--yellow); width: min(480px, 100% - 32px); padding: 0; color: var(--ink); background: #fff;
-        border: 3px solid var(--ink); border-radius: 18px; box-shadow: 10px 10px 0 var(--ink);
+        --c: var(--yellow); --edge: 16px;
+        width: min(480px, 100% - 2 * var(--edge)); max-width: none; max-height: calc(100% - 2 * var(--edge));
+        margin: auto; padding: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+        color: var(--ink); background: #fff; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 10px 10px 0 var(--ink);
       }
       dialog[open] { animation: rise 0.35s var(--spring); }
       @keyframes rise { from { opacity: 0; transform: translateY(24px) scale(0.95); } }
       dialog::backdrop { background: rgba(17, 17, 17, 0.35); backdrop-filter: blur(3px); }
       .dlg-bar {
+        position: sticky; top: 0; z-index: 1; /* title and close button stay in view while the form scrolls */
         display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 12px 18px;
         background: var(--c); border-bottom: 3px solid var(--ink); transition: background-color 0.3s;
       }
@@ -393,11 +419,11 @@
       .dlg-body { display: grid; gap: 14px; padding: 16px 18px 20px; }
       .inp {
         width: 100%; padding: 11px 13px; background: var(--paper); border: 3px solid var(--ink); border-radius: 10px;
-        font-size: 16px; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s;
+        font-size: 16px; font-weight: 600; text-overflow: ellipsis; transition: transform 0.15s, box-shadow 0.15s;
       }
       .inp:focus { outline: 0; background: #fff; transform: translate(-2px, -2px); box-shadow: 4px 4px 0 var(--ink); }
       textarea.inp { min-height: 64px; resize: vertical; }
-      .quick { display: grid; grid-template-columns: 104px 1fr; gap: 12px; }
+      .quick { display: grid; grid-template-columns: 104px minmax(0, 1fr); align-items: center; gap: 12px; }
       .quick-fields { display: grid; align-content: center; gap: 10px; }
       .drop-wrap { position: relative; }
       .drop {
@@ -406,7 +432,8 @@
         font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
         transition: background-color 0.15s, transform 0.2s var(--spring);
       }
-      .drop:hover, .drop.over { background: var(--c); transform: rotate(-3deg); }
+      .drop.over { background: var(--c); transform: rotate(-3deg); }
+      @media (hover: hover) { .drop:hover { background: var(--c); transform: rotate(-3deg); } }
       .drop:focus-within { outline: 3px dashed var(--ink); outline-offset: 3px; }
       .drop.has { border-style: solid; }
       .drop b { display: block; font-size: 30px; line-height: 1; }
@@ -437,7 +464,7 @@
         margin-top: 22px; padding: 2px 6px; border-radius: 6px; font-size: 13px; font-weight: 700; letter-spacing: 0.12em;
         text-transform: uppercase; text-decoration: underline 2px; text-underline-offset: 5px;
       }
-      .about-link:hover { background: var(--yellow); }
+      @media (hover: hover) { .about-link:hover { background: var(--yellow); } }
       .about { margin-top: 80px; margin-bottom: 40px; scroll-margin-top: 24px; }
       .about-in {
         padding: clamp(24px, 5vw, 52px); background: var(--paper); border: 3px solid var(--ink); border-radius: 22px;
@@ -483,15 +510,60 @@
       @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 
       /* ---------- Responsive + accessibility ---------- */
+      /* Tablets and phones: a tighter dock, so every shelf fits from iPad portrait up */
+      @media (max-width: 820px) {
+        .dock { gap: 8px; }
+        .filters { gap: 6px; }
+        .f { gap: 6px; padding: 8px 8px 8px 11px; }
+      }
       @media (max-width: 560px) {
+        .hero { padding: 32px 0 24px; }
         .sign { padding: 24px 34px 18px; }
         .hook.l { left: 28px; }
         .hook.r { right: 28px; }
+        .tagline { margin-top: 28px; }
         .add-txt { display: none; }
+        .about { margin-top: 56px; }
+      }
+      /* Phones: the dialog uses more of the screen and the shelves sit in a 2 × 2 grid */
+      @media (max-width: 520px) {
+        dialog { --edge: 14px; box-shadow: 6px 6px 0 var(--ink); }
+        .picks { display: grid; grid-template-columns: 1fr 1fr; }
+        .pick span { text-align: center; }
+        .about-card { padding: 20px 18px; }
+        .about-card dl { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+        .about-card dd + dt { margin-top: 10px; }
+      }
+      /* A single column of cards: half the tilt keeps their corners inside the gutter */
+      @media (max-width: 500px) {
+        .grid { --tilt-k: 0.5; }
+      }
+      @media (max-width: 380px) {
+        .dlg-bar { padding: 10px 12px 10px 14px; }
+        .dlg-body { padding: 14px 14px 18px; }
+        .quick { grid-template-columns: 84px minmax(0, 1fr); }
+        .drop { width: 84px; height: 84px; }
+      }
+      /* Very narrow screens, such as a foldable's cover display */
+      @media (max-width: 340px) {
+        .sign { padding: 22px 22px 16px; }
+        .hook.l { left: 20px; }
+        .hook.r { right: 20px; }
+        .open { letter-spacing: 0.12em; }
+      }
+      /* Touch screens: bigger tap targets */
+      @media (pointer: coarse) {
+        .x { width: 34px; height: 34px; font-size: 14px; }
+        .rate button { padding: 3px; }
+        .add-photo { padding: 7px 12px; }
       }
       @media (hover: none) {
         .hint, .search kbd { display: none; }
         .front .body::after { opacity: 0.4; }
+      }
+      /* Phones with the keyboard up: the dock steps aside while a search is typed */
+      @media (hover: none) and (max-height: 600px) {
+        body:has(.search input:focus) .dock { opacity: 0; transform: translateY(24px); pointer-events: none; }
       }
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
@@ -745,6 +817,7 @@
           b.setAttribute("aria-pressed", k === filter);
           b.querySelector(".n").textContent = k === "all" ? n : vault.filter((x) => x.category === k).length;
         });
+        fadeFilters(); // new counts can change the shelves' widths
         document.querySelectorAll(".mq-n").forEach((el) => (el.textContent = n));
 
         const rated = vault.filter((x) => x.rating);
@@ -822,7 +895,21 @@
         document.documentElement.style.setProperty("--dots", t.dots);
         pet.style.setProperty("--pet", CATS[f]?.color || "#FFC900");
         render();
+        showFilter();
         if (!quiet) toast(SHELF_TALK[f]);
+      }
+
+      // Narrow screens scroll the shelves sideways: fade the edge that hides more of them,
+      // and bring the active shelf into view when it changes (saving can switch shelves too)
+      function fadeFilters() {
+        const { scrollLeft: l, scrollWidth: w, clientWidth: c } = filtersEl;
+        filtersEl.classList.toggle("fade-l", l > 1);
+        filtersEl.classList.toggle("fade-r", l + c < w - 1);
+      }
+      function showFilter() {
+        const b = filtersEl.querySelector('[aria-pressed="true"]');
+        const left = b.offsetLeft - filtersEl.offsetLeft - (filtersEl.clientWidth - b.offsetWidth) / 2;
+        filtersEl.scrollTo({ left, behavior: reduce ? "auto" : "smooth" });
       }
 
       // ---------- Card actions ----------
@@ -1300,6 +1387,8 @@
         const b = e.target.closest("[data-f]");
         if (b) setFilter(b.dataset.f);
       });
+      filtersEl.addEventListener("scroll", fadeFilters, { passive: true });
+      addEventListener("resize", fadeFilters);
 
       let searchTimer; // redraw once typing pauses, not on every keystroke
       q.addEventListener("input", () => {
@@ -1448,6 +1537,7 @@
 
       // ---------- Start ----------
       setFilter("all", true);
+      document.fonts.ready.then(fadeFilters); // the web font changes the shelves' widths
       wake();
       const hour = new Date().getHours();
       setTimeout(() => toast(hour < 5 ? "Up late? Me too." : hour < 12 ? "Good morning! ☀" : hour < 17 ? "Good afternoon!" : "Good evening ✦"), 1300);
