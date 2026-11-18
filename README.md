@@ -47,6 +47,8 @@ When you save a new item without a photo, or press **Find photo** on the back of
 | Music, Movies | iTunes Search API |
 | Books | iTunes Search API, then Open Library |
 
+Apple's search starts in your country's store and falls back to the US store. A result is used only when its name matches the title you typed, so a store that doesn't carry a title can't give you another one's cover. If nothing matches, Rasa makes a poster from the title.
+
 Only the title and creator are sent, and only on that press. No API keys are needed. Images are resized to 1200px and stored in the browser. To turn lookups off, set `AUTO_PHOTOS = false` in `index.html`.
 
 ## Contributing

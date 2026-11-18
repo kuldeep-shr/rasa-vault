@@ -1283,6 +1283,20 @@
       // [search filter, result kind to keep]. Apple's movie filter returns nothing right now, so films search everything and keep "feature-movie"
       const ITUNES = { music: ["media=music&entity=album"], movie: ["media=all", "feature-movie"], series: ["media=tvShow&entity=tvSeason"], book: ["media=ebook&entity=ebook"] };
       const country = (navigator.language.split("-")[1] || "us").toLowerCase();
+      // Searches are fuzzy, and a local store may not carry the title at all (Apple's India store answers
+      // "Interstellar" with another film), so a result only counts when its name matches what was typed:
+      // it contains the title, or its main title is nearly the same, which forgives a typo
+      const squash = (s) => String(s ?? "").normalize("NFKD").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+      const pairs = (s) => Array.from({ length: Math.max(s.length - 1, 0) }, (_, i) => s.slice(i, i + 2));
+      function sameTitle(typed, found) {
+        const a = squash(typed), b = squash(found);
+        if (!a || !b) return false;
+        if (b.includes(a)) return true;
+        const main = pairs(squash(String(found).replace(/\s*[([].*$/, "").split(/[:,]|\s[–—-]\s/)[0]));
+        const want = pairs(a), total = want.length + main.length;
+        const shared = want.filter((p) => { const i = main.indexOf(p); return i >= 0 && main.splice(i, 1); }).length;
+        return total > 0 && (2 * shared) / total >= 0.7;
+      }
       const photoQueries = new Map(); // "category|title|creator" -> Promise<Blob | null>
       const fetching = new Set(); // item ids waiting for a photo
       const AUTO_PHOTOS = true; // the shared copy sets this to false: its host blocks calls to outside services
@@ -1294,20 +1308,25 @@
         const enc = encodeURIComponent;
         const sources = [
           // Web series: TVmaze knows streaming shows and has large posters
-          cat === "series" && (async () => (await get(`https://api.tvmaze.com/singlesearch/shows?q=${enc(title)}`)).image?.original),
-          // Apple's catalogue: sharp 1200px artwork. Local store first, then without the creator, then the US store
+          cat === "series" && (async () => {
+            const show = await get(`https://api.tvmaze.com/singlesearch/shows?q=${enc(title)}`);
+            return sameTitle(title, show.name) && show.image?.original;
+          }),
+          // Apple's catalogue: sharp 1200px artwork. The local store first, then the US store, each with the creator and without
           async () => {
-            const tries = [[`${title} ${creator}`.trim(), country], [title, country], [title, "us"]];
+            const [filter, kind] = ITUNES[cat];
+            const full = `${title} ${creator}`.trim();
+            const tries = [[full, country], [title, country], [full, "us"], [title, "us"]];
             for (const [term, store] of new Map(tries.map((t) => [t.join("|"), t])).values()) {
-              const [filter, kind] = ITUNES[cat];
               const hits = (await get(`https://itunes.apple.com/search?${filter}&limit=${kind ? 15 : 1}&country=${store}&term=${enc(term)}`)).results || [];
-              const art = hits.find((h) => !kind || h.kind === kind)?.artworkUrl100;
+              const art = hits.find((h) => (!kind || h.kind === kind) && [h.trackName, h.collectionName].some((n) => sameTitle(title, n)))?.artworkUrl100;
               if (art) return art.replace(/\d+x\d+bb/, "1200x1200bb");
             }
           },
           // Books: Open Library covers as a fallback
           cat === "book" && (async () => {
-            const id = (await get(`https://openlibrary.org/search.json?limit=1&fields=cover_i&q=${enc(`${title} ${creator}`)}`)).docs?.[0]?.cover_i;
+            const docs = (await get(`https://openlibrary.org/search.json?limit=5&fields=cover_i,title&q=${enc(`${title} ${creator}`)}`)).docs || [];
+            const id = docs.find((d) => d.cover_i && sameTitle(title, d.title))?.cover_i;
             return id && `https://covers.openlibrary.org/b/id/${id}-L.jpg`;
           }),
         ].filter(Boolean);
