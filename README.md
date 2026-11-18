@@ -39,6 +39,23 @@ Rasa is one static file, so any static host works:
 
 Everything stays in the visitor's browser: items, name and username in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
 
+## Visit counts
+
+Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the site owner can see how it's doing:
+
+| Count | When |
+| --- | --- |
+| A visit | The page opens. Also records where the visitor came from and their screen size. |
+| `joined` | A browser opens Rasa for the first time. |
+| `added-movie`, `added-book`, `added-music`, `added-series` | Someone saves a new item. Only the shelf is sent. |
+| `shared-shelf`, `saved-shelf` | Someone shares or saves a picture of their shelf. |
+
+Only these plain numbers are sent. There are no cookies, and a title, note, name or username is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted.
+
+To see which platform brings visitors, tag your links, for example `https://kuldeep-shr.github.io/rasa-vault/?ref=instagram`. GoatCounter lists each tag as a campaign.
+
+Counting is off while `STATS.code` in `index.html` is empty, and it only runs on `STATS.host`. A fork counts nothing until you put in your own GoatCounter code and host.
+
 ## Photo lookup
 
 When you save a new item without a photo, or press **Find photo** on the back of a card, Rasa searches once for cover art. It never searches while you type.

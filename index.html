@@ -690,7 +690,7 @@
         </div>
         <ul class="about-values">
           <li style="--v: var(--pink)"><b>One shelf, four kinds</b><p>Music, books, web series and movies together, instead of spread over four apps.</p></li>
-          <li style="--v: var(--blue)"><b>Yours alone</b><p>No account, no ads, no analytics. Your shelf lives in this browser. Only a title and its creator ever leave, when Rasa looks up a cover.</p></li>
+          <li style="--v: var(--blue)"><b>Yours alone</b><p>No account, no ads, no cookies. Your shelf lives in this browser. Rasa only counts visits and saves, as plain numbers, and a title and its creator leave only when it looks up a cover.</p></li>
           <li style="--v: var(--mint)"><b>Kept, not scrolled</b><p>No feed, no likes, no streaks. Nothing here is built to keep you busy.</p></li>
         </ul>
       </div>
@@ -1183,6 +1183,7 @@
         } else {
           id = Math.max(Date.now(), ...vault.map((x) => x.id + 1));
           vault.push({ id, added: Date.now(), ...data });
+          count(`added-${data.category}`, true); // only the shelf, never the title
         }
         const item = vault.find((x) => x.id === id);
         if (formPhoto) {
@@ -1550,6 +1551,27 @@
       addBtn.addEventListener("click", () => openDialog());
       surpriseBtn.addEventListener("click", surprise);
 
+      // ---------- Visit counts, for the site owner's GoatCounter dashboard ----------
+      // Plain numbers only: visits, new curators, saved items and shared shelves. No cookies, and never a title,
+      // note, name or username. Off when the code is empty, on other hosts (forks: use your own code), in frames,
+      // and for browsers that ask not to be tracked.
+      const STATS = { code: "lupin", host: "kuldeep-shr.github.io" };
+      const counting = !!STATS.code && location.hostname === STATS.host && window.top === window && navigator.doNotTrack !== "1" && !navigator.globalPrivacyControl;
+      function count(path, event = false) {
+        if (!counting) return;
+        const p = new URLSearchParams({ p: path, e: event });
+        if (!event) {
+          p.set("t", document.title);
+          p.set("r", document.referrer);
+          p.set("q", location.search); // links tagged ?ref=instagram show up as campaigns
+          p.set("s", [screen.width, screen.height, devicePixelRatio].join(","));
+        }
+        if (navigator.webdriver) p.set("b", "153"); // automated browsers are counted as bots
+        p.set("rnd", Math.random().toString(36).slice(2));
+        new Image().src = `https://${STATS.code}.goatcounter.com/count?${p}`;
+      }
+      count(location.pathname);
+
       // ---------- Curator card: your name and username, kept on this device ----------
       const CUR_KEY = "rasaCurator";
       // Made-up usernames pair two words that start with the same letter: @velvet.vinyl, @moonlit.matinee
@@ -1585,6 +1607,7 @@
         const user = cleanHandle(c?.user);
         const out = { name: String(c?.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
         if (out.user !== c?.user) saveCurator(out); // a new username is kept, so it stays the same next time
+        if (!c) count("joined", true); // the first visit from this browser
         return out;
       }
       function saveCurator(c) {
@@ -2082,11 +2105,15 @@
         try {
           await navigator.share({ files: [shareFile], title: "My Rasa shelf", text: shareText });
           shareNote.textContent = "Shared! Your shelf is out in the world ✦";
+          count("shared-shelf", true);
         } catch (e) {
           if (e.name !== "AbortError") shareNote.textContent = "Sharing didn't work here. Save the image and post it instead.";
         }
       });
-      shareSave.addEventListener("click", () => (shareNote.textContent = "Saved! Post it anywhere ✦"));
+      shareSave.addEventListener("click", () => {
+        shareNote.textContent = "Saved! Post it anywhere ✦";
+        count("saved-shelf", true);
+      });
       $("#shareClose").addEventListener("click", () => shareDlg.close());
       let shareDown = false; // close on a backdrop click, as the other dialog does
       shareDlg.addEventListener("pointerdown", (e) => (shareDown = e.target === shareDlg));
