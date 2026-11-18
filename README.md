@@ -14,6 +14,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Photos your way.** Upload, paste or drop an image onto a card, or let Rasa look one up when you save. Anything without a photo gets a poster made from its title.
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
 - **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.
+- **Your curator card.** A name and a username for your museum, under the sign. Rasa makes up a username for you, like `@velvet.vinyl` or `@moonlit.matinee`, and you can change both any time. Your shared pictures are signed with them.
 - **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
 
@@ -36,7 +37,7 @@ Rasa is one static file, so any static host works:
 
 ## Where data is stored
 
-Everything stays in the visitor's browser: items in `localStorage` and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
+Everything stays in the visitor's browser: items, name and username in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
 
 ## Photo lookup
 

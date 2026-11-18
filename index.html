@@ -521,6 +521,33 @@
       }
       @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
 
+      /* ---------- Curator card: your name and username ---------- */
+      .curator {
+        display: inline-flex; align-items: center; gap: 10px; max-width: 100%; margin-top: 18px; padding: 5px 14px 5px 5px;
+        background: var(--paper); border: 2px solid var(--ink); border-radius: 99px; box-shadow: 3px 3px 0 var(--ink);
+        font-size: 14px; font-weight: 600; transition: transform 0.15s, box-shadow 0.15s;
+      }
+      @media (hover: hover) { .curator:hover { transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink); } }
+      .curator:active { transform: translate(3px, 3px); box-shadow: 0 0 0 var(--ink); }
+      .avatar {
+        display: grid; place-items: center; flex-shrink: 0; width: 32px; height: 32px; background: var(--a, var(--yellow));
+        border: 2px solid var(--ink); border-radius: 50%; font-size: 15px; font-weight: 700; line-height: 1;
+      }
+      /* "Curated by" sits on a small line above the name, so the name and username fit side by side on a phone */
+      .curator .who { display: grid; min-width: 0; line-height: 1.25; text-align: left; }
+      .curator small { color: #555; font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+      .curator .line { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .curator .at { color: #555; }
+      .curator .pen { flex-shrink: 0; }
+      .cur-dlg { width: min(400px, 100% - 2 * var(--edge)); }
+      .field { display: grid; gap: 6px; }
+      .field > label { font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .handle { display: flex; align-items: center; gap: 8px; }
+      .handle > span { font-size: 20px; font-weight: 700; }
+      .handle .inp { flex: 1; min-width: 0; }
+      .handle .btn { flex-shrink: 0; width: auto; margin-top: 0; padding: 10px 12px; font-size: 12px; }
+      .cur-note { color: #555; font-size: 13px; font-weight: 500; line-height: 1.4; }
+
       /* ---------- Share my shelf ---------- */
       .share-dlg { width: min(400px, 100% - 2 * var(--edge)); }
       .share-body { justify-items: center; }
@@ -614,6 +641,9 @@
         <p class="open"><span class="dot"></span>Come in, we're open</p>
       </div>
       <p class="tagline">A pocket museum for everything that moved you.</p>
+      <button class="curator" id="curator" type="button" aria-haspopup="dialog">
+        <span class="avatar" id="curAvatar" aria-hidden="true"></span><span class="who" id="curWho"></span><span class="pen" aria-hidden="true">✎</span>
+      </button>
       <a class="about-link" href="#about">About Rasa ↓</a>
     </header>
 
@@ -729,6 +759,31 @@
             </div>
           </details>
           <button class="btn mint" id="fSubmit" type="submit">Save to vault</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="curDlg" class="cur-dlg" aria-labelledby="curTitle">
+      <form id="curForm">
+        <div class="dlg-bar">
+          <h2 id="curTitle">Your curator card</h2>
+          <button class="x" id="curClose" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="dlg-body">
+          <div class="field">
+            <label for="curName">Name</label>
+            <input class="inp" id="curName" maxlength="40" placeholder="Your name (optional)" autocomplete="nickname" />
+          </div>
+          <div class="field">
+            <label for="curUser">Username</label>
+            <div class="handle">
+              <span aria-hidden="true">@</span>
+              <input class="inp" id="curUser" required minlength="3" maxlength="24" autocapitalize="none" autocomplete="off" spellcheck="false" aria-describedby="curHint" />
+              <button class="btn sm" id="curDice" type="button" aria-label="Make up a new username">🎲 New</button>
+            </div>
+          </div>
+          <p class="cur-note" id="curHint">Letters, numbers, dots and underscores. Shown on your page and on the pictures you share, and kept on this device.</p>
+          <button class="btn mint" type="submit">Save</button>
         </div>
       </form>
     </dialog>
@@ -1305,7 +1360,7 @@
         if (!e.dataTransfer?.files.length) return;
         e.preventDefault();
         dropTile.classList.remove("over");
-        if (shareDlg.open) return;
+        if (shareDlg.open || curDlg.open) return;
         const f = [...e.dataTransfer.files].find((f) => f.type.startsWith("image/"));
         if (!f) return toast("Only photos fit in the vault.", null, "o");
         const card = !dlg.open && e.target.closest?.(".card");
@@ -1471,7 +1526,7 @@
       });
 
       document.addEventListener("keydown", (e) => {
-        if (dlg.open || shareDlg.open || e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
+        if (dlg.open || shareDlg.open || curDlg.open || e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
         const k = e.key.toLowerCase();
         if (k === "/") {
           e.preventDefault();
@@ -1494,6 +1549,88 @@
       sign.addEventListener("animationend", () => sign.classList.remove("swing"));
       addBtn.addEventListener("click", () => openDialog());
       surpriseBtn.addEventListener("click", surprise);
+
+      // ---------- Curator card: your name and username, kept on this device ----------
+      const CUR_KEY = "rasaCurator";
+      // Made-up usernames pair two words that start with the same letter: @velvet.vinyl, @moonlit.matinee
+      const HANDLE_WORDS = [
+        ["bold breezy bright", "ballad bookmark blues"],
+        ["cosmic cozy crimson", "chapter chorus cinema"],
+        ["dreamy dusky dapper", "drama duet diary"],
+        ["electric endless", "encore epic echo"],
+        ["fuzzy frosty funky", "fable frame finale"],
+        ["golden gentle", "gallery groove genre"],
+        ["lucky lunar lazy", "lyric legend library"],
+        ["moonlit mellow misty", "matinee mixtape marquee"],
+        ["neon noir nimble", "novel notebook nocturne"],
+        ["pixel paper plum", "poet popcorn playlist"],
+        ["retro rosy rainy", "reel record rhapsody"],
+        ["sleepy silver stellar", "sonnet scene story"],
+        ["velvet vivid", "vinyl verse vignette"],
+        ["wild wistful", "waltz watchlist"],
+      ].map((pair) => pair.map((words) => words.split(" ")));
+      const pick = (a) => a[Math.floor(Math.random() * a.length)];
+      function makeHandle() {
+        const [adjectives, nouns] = pick(HANDLE_WORDS);
+        return `${pick(adjectives)}.${pick(nouns)}`;
+      }
+      // Usernames keep to letters, numbers, dots and underscores, like most apps' handles
+      const cleanHandle = (s) =>
+        String(s ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/^@+/, "")
+          .replace(/\s+/g, ".").replace(/[^a-z0-9._]/g, "").replace(/\.{2,}/g, ".").slice(0, 24);
+
+      function loadCurator() {
+        let c = null;
+        try { c = JSON.parse(localStorage.getItem(CUR_KEY)); } catch {}
+        const user = cleanHandle(c?.user);
+        const out = { name: String(c?.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
+        if (out.user !== c?.user) saveCurator(out); // a new username is kept, so it stays the same next time
+        return out;
+      }
+      function saveCurator(c) {
+        try { localStorage.setItem(CUR_KEY, JSON.stringify(c)); } catch {}
+      }
+      let curator = loadCurator();
+
+      const curBtn = $("#curator"), curDlg = $("#curDlg"), curForm = $("#curForm"), curName = $("#curName"), curUser = $("#curUser");
+      function paintCurator() {
+        const { name, user } = curator;
+        $("#curWho").innerHTML = `<small>Curated by</small><span class="line">${name ? `<b>${esc(name)}</b> <span class="at">@${esc(user)}</span>` : `<b>@${esc(user)}</b>`}</span>`;
+        const avatar = $("#curAvatar");
+        avatar.textContent = [...(name || user)][0].toUpperCase();
+        avatar.style.setProperty("--a", COLORS[[...user].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 997, 7) % COLORS.length]);
+        curBtn.setAttribute("aria-label", `Curated by ${name ? `${name}, ` : ""}@${user}. Edit your name and username`);
+      }
+      paintCurator();
+
+      curBtn.addEventListener("click", () => {
+        curName.value = curator.name;
+        curUser.value = curator.user;
+        curDlg.showModal();
+      });
+      curUser.addEventListener("input", () => {
+        const v = cleanHandle(curUser.value);
+        if (v !== curUser.value) curUser.value = v;
+      });
+      $("#curDice").addEventListener("click", () => {
+        let h = makeHandle();
+        while (h === curUser.value) h = makeHandle();
+        curUser.value = h;
+        curUser.focus();
+      });
+      curForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const user = cleanHandle(curUser.value);
+        curator = { name: curName.value.trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
+        saveCurator(curator);
+        paintCurator();
+        curDlg.close();
+        toast(`Nice to meet you${curator.name ? `, ${curator.name.split(/\s+/)[0]}` : ""} ✦`);
+      });
+      $("#curClose").addEventListener("click", () => curDlg.close());
+      let curDown = false; // close on a backdrop click, as the other dialogs do
+      curDlg.addEventListener("pointerdown", (e) => (curDown = e.target === curDlg));
+      curDlg.addEventListener("click", (e) => curDown && e.target === curDlg && curDlg.close());
 
       // ---------- Share my shelf: a picture of the shelf, sized for Stories ----------
       // Drawn on a canvas on this device. The picture only leaves it if you share or save it.
@@ -1812,15 +1949,20 @@
         write(ctx, open, rx + 19 * s, ry + s, { size: small, track: 0.2, align: "left" });
         ctx.restore();
 
-        let y = sy + sh + 66;
-        const head = `${shelfName(f)} that moved me`, hs = 40, hw = textWidth(ctx, head, 600, hs) + 48, hh = hs * 1.2 + 26;
+        // The headline, signed by the curator like a quote
+        let y = sy + sh + 58;
+        const head = `${shelfName(f)} that moved me`, by = `— ${curator.name ? `${curator.name} · ` : ""}@${curator.user}`;
+        const hs = 40, bs = 24, shade = c ? c.color : "#FF90E8";
+        const hw = Math.min(Math.max(textWidth(ctx, head, 600, hs), textWidth(ctx, by, 600, bs)) + 56, SW - 120), hh = hs * 1.2 + bs * 1.3 + 30;
         ctx.save();
         ctx.translate(cx, y + hh / 2);
         ctx.rotate((-2 * Math.PI) / 180);
-        slab(ctx, -hw / 2, -hh / 2, hw, hh, 10, { fill: INK, line: 0, shadow: 6, shade: c ? c.color : "#FF90E8" });
-        write(ctx, head, 0, 2, { weight: 600, size: hs, color: "#fff" });
+        slab(ctx, -hw / 2, -hh / 2, hw, hh, 10, { fill: INK, line: 0, shadow: 6, shade });
+        write(ctx, head, 0, -hh / 2 + 15 + hs * 0.62, { weight: 600, size: hs, color: "#fff" });
+        setText(ctx, 600, bs);
+        write(ctx, wrapLines(ctx, by, hw - 56, 1)[0], 0, hh / 2 - 15 - bs * 0.62, { weight: 600, size: bs, color: shade });
         ctx.restore();
-        y += hh + 30;
+        y += hh + 24;
         const ss = 19, label = stat.toUpperCase(), lw = textWidth(ctx, label, 700, ss, 0.14) + 44, lhh = ss + 22;
         slab(ctx, cx - lw / 2, y, lw, lhh, lhh / 2, { fill: PAPER, line: 3 });
         write(ctx, label, cx, y + lhh / 2 + 1, { size: ss, track: 0.14 });
@@ -1866,7 +2008,7 @@
         const n = list.length, rated = list.filter((x) => x.rating);
         const avg = rated.length ? (rated.reduce((s, x) => s + x.rating, 0) / rated.length).toFixed(1) : 0;
         const stat = (n > items.length ? `My top ${items.length} of ${n}` : `${n} treasure${n === 1 ? "" : "s"}`) + (avg ? ` · ${avg}★ average` : "");
-        const top = drawHeader(ctx, f, stat) + 56, bottom = 1536;
+        const top = drawHeader(ctx, f, stat) + 48, bottom = 1536;
 
         // 1 big card, 2 side by side, 2 × 2 for four, otherwise rows of three
         const count = items.length, cols = count === 1 ? 1 : count === 2 || count === 4 ? 2 : 3, rows = Math.ceil(count / cols);
@@ -1916,7 +2058,7 @@
           if (run !== shareRun) return; // closed, or opened again, while it was drawing
           const name = `rasa-${f === "all" ? "shelf" : f}.png`;
           shareFile = new File([blob], name, { type: "image/png" });
-          shareText = `${shelfName(f)} that moved me. Make your own pocket museum: ${SITE_URL}`;
+          shareText = `${shelfName(f)} that moved me, curated by @${curator.user}. Make your own pocket museum: ${SITE_URL}`;
           sharePic.src = shareSave.href = URL.createObjectURL(blob);
           sharePic.alt = `Your shelf as a picture: ${items.map((x) => x.title).join(", ")}`;
           sharePic.hidden = false;
