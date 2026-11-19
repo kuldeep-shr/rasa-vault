@@ -15,6 +15,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
 - **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.
 - **Your curator card.** A name and a username for your museum, under the sign. Rasa makes up a username for you, like `@velvet.vinyl` or `@moonlit.matinee`, and you can change both any time. Your shared pictures are signed with them.
+- **Feedback switches.** No form and nothing to type. Visitors switch on what feels true, like *I love Rasa* or *Make a phone app*, and send it to Rasu. Each knob is a sleepy face that wakes up and smiles when it's on.
 - **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
 
@@ -37,7 +38,7 @@ Rasa is one static file, so any static host works:
 
 ## Where data is stored
 
-Everything stays in the visitor's browser: items, name and username in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
+Everything stays in the visitor's browser: items, name, username and feedback answers in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
 
 ## Visit counts
 
@@ -49,8 +50,9 @@ Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the
 | `joined` | A browser opens Rasa for the first time. |
 | `added-movie`, `added-book`, `added-music`, `added-series` | Someone saves a new item. Only the shelf is sent. |
 | `shared-shelf`, `saved-shelf` | Someone shares or saves a picture of their shelf. |
+| `feedback-sent`, plus `feedback-love`, `feedback-easy`, `feedback-friend`, `feedback-app`, `feedback-shelves` | Someone presses **Send to Rasu**. One `feedback-sent`, and one count for each switch they turned on. Sending the same answers again from the same browser isn't counted. |
 
-Only these plain numbers are sent. There are no cookies, and a title, note, name or username is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted.
+Only these plain numbers are sent. There are no cookies, and a title, note, name or username is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted, except for feedback, which is only sent when someone presses Send.
 
 To see which platform brings visitors, tag your links, for example `https://kuldeep-shr.github.io/rasa-vault/?ref=instagram`. GoatCounter lists each tag as a campaign.
 
