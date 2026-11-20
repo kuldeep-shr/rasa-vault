@@ -575,6 +575,17 @@
         background: radial-gradient(rgba(255, 255, 255, 0.5) 3px, transparent 3.5px) 0 0 / 26px 26px, var(--pink); /* polka dots */
       }
       .fb-sub { max-width: 40ch; margin-top: 16px; font-size: 18px; font-weight: 500; line-height: 1.6; text-wrap: pretty; }
+      /* Counters: how many curators so far, and how many sent feedback, as two stickers */
+      .fb-stats { display: flex; flex-wrap: wrap; gap: 14px 16px; margin-top: 26px; }
+      .fb-stat {
+        display: grid; min-width: 150px; padding: 10px 18px 12px; background: var(--c); border: 3px solid var(--ink);
+        border-radius: 16px; box-shadow: 5px 5px 0 var(--ink); line-height: 1.1; transform: rotate(-2deg);
+        animation: stick 0.5s var(--spring) backwards;
+      }
+      .fb-stat + .fb-stat { transform: rotate(1.5deg); animation-delay: 0.12s; }
+      .fb-stat b { font-size: clamp(30px, 4vw, 40px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+      .fb-stat span { margin-top: 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .fb-stats-note { flex-basis: 100%; font-size: 12px; font-weight: 600; opacity: 0.75; }
       /* The panel flips over to say thanks, like the shelf cards flip to their notes */
       .fb-card { position: relative; display: grid; perspective: 1400px; transform: rotate(-1.2deg); }
       .fb-inner { display: grid; transform-style: preserve-3d; transition: transform 0.7s var(--spring); }
@@ -690,6 +701,10 @@
         .sw { --w: 62px; --h: 34px; --k: 24px; }
         .sw::before { font-size: 9px; }
         .fb-send { padding: 14px 10px 16px; }
+        /* The two counters share a row */
+        .fb-stats { gap: 12px; }
+        .fb-stat { flex: 1 1 0; min-width: 0; padding: 8px 12px 10px; box-shadow: 4px 4px 0 var(--ink); }
+        .fb-stat span { font-size: 11px; letter-spacing: 0.08em; }
       }
       /* A single column of cards: half the tilt keeps their corners inside the gutter */
       @media (max-width: 500px) {
@@ -773,6 +788,11 @@
           <p class="about-eyebrow">Feedback</p>
           <h2 id="fbTitle">Flip a switch. Make Rasu's day.</h2>
           <p class="fb-sub">No forms and no typing. Switch on whatever feels true and send it. Rasu, the little one on the dock, will pass it on.</p>
+          <div class="fb-stats" id="fbStats" hidden>
+            <p class="fb-stat" style="--c: var(--yellow)"><b id="statUsers">0</b><span id="statUsersTxt">curators so far</span></p>
+            <p class="fb-stat" style="--c: var(--blue)"><b id="statFb">0</b><span>sent feedback</span></p>
+            <p class="fb-stats-note">Counted by GoatCounter. The numbers catch up every few hours.</p>
+          </div>
         </div>
         <div class="fb-card" id="fbCard">
           <div class="fb-inner">
@@ -1717,6 +1737,7 @@
 
       // ---------- Curator card: your name and username, kept on this device ----------
       const CUR_KEY = "rasaCurator";
+      let joinedNow = false; // this browser's first visit was just counted
       // Made-up usernames pair two words that start with the same letter: @velvet.vinyl, @moonlit.matinee
       const HANDLE_WORDS = [
         ["bold breezy bright", "ballad bookmark blues"],
@@ -1750,7 +1771,10 @@
         const user = cleanHandle(c?.user);
         const out = { name: String(c?.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
         if (out.user !== c?.user) saveCurator(out); // a new username is kept, so it stays the same next time
-        if (!c) count("joined", true); // the first visit from this browser
+        if (!c) {
+          count("joined", true); // the first visit from this browser
+          joinedNow = counting;
+        }
         return out;
       }
       function saveCurator(c) {
@@ -2458,6 +2482,7 @@
         if (on.join() === fbSent?.on.join()) return toast("Rasu already has that one ✦");
         on.forEach((k) => count(`feedback-${k}`, true, true));
         count("feedback-sent", true, true);
+        if (!fbSent && onSite) addMine("fb"); // the first feedback from this browser
         fbSent = { on, at: Date.now() };
         try { localStorage.setItem(FB_KEY, JSON.stringify(fbSent)); } catch {}
         burst(r.left + r.width / 2, r.top + r.height / 2, 36);
@@ -2468,6 +2493,67 @@
         showThanks(false, true);
         toast("Go on, flip away ✦");
       });
+
+      // ---------- Counters: how many curators so far, and how many sent feedback ----------
+      // Read back from GoatCounter's public counter, which needs "Allow adding visitor counts on your website" on in
+      // its settings. While that's off, or the numbers can't be read, the counters stay hidden. `joined` goes once per
+      // browser and `feedback-sent` with each new set of answers, both counted as GoatCounter visitors, so these are
+      // browsers rather than people. GoatCounter caches them for up to four hours, so this browser's own join and
+      // first feedback are added on top. Reading them counts nothing.
+      const fbStats = $("#fbStats");
+      const TALLIES = {
+        users: { event: "joined", el: $("#statUsers"), n: null, mine: joinedNow ? 1 : 0 },
+        fb: { event: "feedback-sent", el: $("#statFb"), n: null, mine: 0 },
+      };
+      const nf = new Intl.NumberFormat("en");
+
+      function readCounter(event) {
+        // A name with no hits yet comes back as a 404 that still says "0"
+        return fetch(`https://${STATS.code}.goatcounter.com/counter/${encodeURIComponent(event)}.json`)
+          .then((r) => (r.ok || r.status === 404 ? r.json() : Promise.reject(new Error(r.status))))
+          .then((d) => Number(String(d.count).replace(/\D/g, "")) || 0); // "1,234", "1.234" or "1 234", by the site's setting
+      }
+      function countUp(el, to, from = 0) {
+        if (reduce || to === from) return void (el.textContent = nf.format(to));
+        const start = performance.now(), ms = Math.min(1400, 500 + Math.abs(to - from) * 30);
+        const step = (now) => {
+          const t = Math.min(1, (now - start) / ms);
+          el.textContent = nf.format(Math.round(from + (to - from) * (1 - (1 - t) ** 3))); // eases out
+          if (t < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      }
+      function paintTally(key, from = 0) {
+        const t = TALLIES[key], n = t.n + t.mine;
+        if (key === "users") $("#statUsersTxt").textContent = n === 1 ? "curator so far" : "curators so far";
+        countUp(t.el, n, from);
+      }
+      function addMine(key) {
+        const t = TALLIES[key];
+        if (t.mine) return;
+        t.mine = 1;
+        if (t.n === null || fbStats.hidden) return; // it's added when the numbers arrive
+        paintTally(key, t.n);
+        // scale and rotate stack on the sticker's own tilt
+        if (!reduce) t.el.parentElement.animate([{ scale: "1.15", rotate: "-6deg" }, { scale: "1", rotate: "0deg" }], { duration: 450, easing: "cubic-bezier(.34,1.56,.64,1)" });
+      }
+
+      // The numbers are fetched once, as the feedback section comes near, so they count up where they can be seen
+      if (onSite && "IntersectionObserver" in window) {
+        const io = new IntersectionObserver((entries) => {
+          if (!entries.some((e) => e.isIntersecting)) return;
+          io.disconnect();
+          Promise.all(Object.values(TALLIES).map((t) => readCounter(t.event)))
+            .then(([users, fb]) => {
+              TALLIES.users.n = users;
+              TALLIES.fb.n = fb;
+              fbStats.hidden = false;
+              Object.keys(TALLIES).forEach((k) => paintTally(k));
+            })
+            .catch(() => {}); // the counter is off or out of reach: no stickers
+        }, { rootMargin: "200px 0px" });
+        io.observe($("#feedback"));
+      }
 
       // ---------- Start ----------
       setFilter("all", true);

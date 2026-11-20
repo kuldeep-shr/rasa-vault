@@ -15,7 +15,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
 - **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.
 - **Your curator card.** A name and a username for your museum, under the sign. Rasa makes up a username for you, like `@velvet.vinyl` or `@moonlit.matinee`, and you can change both any time. Your shared pictures are signed with them.
-- **Feedback switches.** No form and nothing to type. Visitors switch on what feels true, like *I love Rasa* or *Make a phone app*, and send it to Rasu. Each knob is a sleepy face that wakes up and smiles when it's on.
+- **Feedback switches.** No form and nothing to type. Visitors switch on what feels true, like *I love Rasa* or *Make a phone app*, and send it to Rasu. Each knob is a sleepy face that wakes up and smiles when it's on. Beside them, two counters show how many curators Rasa has so far and how many have sent feedback.
 - **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
 
@@ -57,6 +57,19 @@ Only these plain numbers are sent. There are no cookies, and a title, note, name
 To see which platform brings visitors, tag your links, for example `https://kuldeep-shr.github.io/rasa-vault/?ref=instagram`. GoatCounter lists each tag as a campaign.
 
 Counting is off while `STATS.code` in `index.html` is empty, and it only runs on `STATS.host`. A fork counts nothing until you put in your own GoatCounter code and host.
+
+### Counters on the page
+
+The feedback section shows two numbers, read from GoatCounter's public visitor counter when the section scrolls near:
+
+| Counter | Read from |
+| --- | --- |
+| Curators so far | `joined` |
+| Sent feedback | `feedback-sent` |
+
+GoatCounter counts each as visitors, so they count browsers rather than people. They're cached for up to four hours, so the visitor's own first visit and first feedback are added on top. Reading them counts nothing.
+
+They only appear once the GoatCounter setting **Allow adding visitor counts on your website** is on. Until then the counter answers 403 and the section shows no numbers. Turning it on lets anyone read the count for any page or event on the site, not just these two.
 
 ## Photo lookup
 
