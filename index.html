@@ -759,6 +759,39 @@
       @media (hover: none) and (max-height: 600px) {
         body:has(.search input:focus) .dock { opacity: 0; transform: translateY(24px); pointer-events: none; }
       }
+      /* ---------- Tour ---------- */
+      /* A full-screen dialog: a box over the part being explained, whose wide shadow dims everything else, and a card
+         on whichever side of it has more room */
+      dialog.tour, dialog.tour[open] {
+        inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; overflow: hidden;
+        background: transparent; border: 0; border-radius: 0; box-shadow: none; animation: none;
+      }
+      dialog.tour::backdrop { background: transparent; backdrop-filter: none; }
+      .tour-spot {
+        position: fixed; border-radius: 18px; pointer-events: none;
+        box-shadow: 0 0 0 4px var(--yellow), 0 0 0 7px var(--ink), 0 0 0 200vmax rgba(17, 17, 17, 0.62);
+        transition: left 0.3s, top 0.3s, width 0.3s, height 0.3s;
+      }
+      .tour-spot.none { box-shadow: 0 0 0 200vmax rgba(17, 17, 17, 0.62); }
+      .tour-card {
+        position: fixed; left: 12px; top: 12px; width: min(340px, 100% - 24px); padding: 16px 18px 18px;
+        background: #fff; border: 3px solid var(--ink); border-radius: 18px; box-shadow: 8px 8px 0 var(--ink);
+        transition: left 0.3s, top 0.3s;
+      }
+      .tour-card .x { position: absolute; top: 13px; right: 13px; }
+      .tour-tag {
+        display: inline-block; padding: 3px 10px 4px; background: var(--yellow); border: 2px solid var(--ink); border-radius: 99px;
+        font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+      }
+      .tour-card h2 { margin-top: 10px; font-size: 22px; line-height: 1.15; }
+      .tour-text { margin-top: 6px; color: #333; font-size: 16px; line-height: 1.45; }
+      .tour-dots { display: flex; gap: 6px; margin-top: 14px; }
+      .tour-dots:empty { display: none; }
+      .tour-dots i { width: 9px; height: 9px; border: 2px solid var(--ink); border-radius: 99px; transition: width 0.25s, background-color 0.25s; }
+      .tour-dots i.on { width: 24px; background: var(--ink); }
+      .tour-acts { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+      .tour-acts .btn { flex: 1 1 auto; } /* side by side when they fit, full width when they wrap */
+
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after {
           animation-duration: 0.01ms !important; animation-iteration-count: 1 !important;
@@ -781,7 +814,7 @@
       <button class="curator" id="curator" type="button" aria-haspopup="dialog">
         <span class="avatar" id="curAvatar" aria-hidden="true"></span><span class="who" id="curWho"></span><span class="pen" aria-hidden="true">✎</span>
       </button>
-      <p class="hero-links"><a class="about-link" href="#about">About Rasa ↓</a><a class="about-link" href="#feedback">Feedback ↓</a><button class="about-link sync-link" id="syncLink" type="button" hidden>Sync devices ☁</button></p>
+      <p class="hero-links"><button class="about-link" id="tourLink" type="button">Take a tour ✦</button><a class="about-link" href="#about">About Rasa ↓</a><a class="about-link" href="#feedback">Feedback ↓</a><button class="about-link sync-link" id="syncLink" type="button" hidden>Sync devices ☁</button></p>
     </header>
 
     <main class="wrap">
@@ -797,7 +830,7 @@
       </div>
       <p class="stats" aria-live="polite"><span id="statsTxt"></span></p>
       <div class="grid" id="grid"></div>
-      <p class="hint">Click a card to flip it · drop a photo on a card to change it · <kbd>/</kbd> search · <kbd>N</kbd> new · <kbd>R</kbd> surprise · <kbd>S</kbd> share</p>
+      <p class="hint">Click a card to flip it · drop a photo on a card to change it · <kbd>/</kbd> search · <kbd>N</kbd> new · <kbd>R</kbd> surprise · <kbd>S</kbd> share · <kbd>?</kbd> tour</p>
     </main>
 
     <section class="fb wrap" id="feedback" aria-labelledby="fbTitle">
@@ -977,6 +1010,23 @@
           <button class="btn mint" id="shareGo" type="button" hidden>Share ↗</button>
           <a class="btn yellow" id="shareSave" href="#" download="rasa-shelf.png">Save image ↓</a>
         </div>
+      </div>
+    </dialog>
+
+    <!-- The tour: a few short steps, each lighting up one part of Rasa -->
+    <dialog id="tour" class="tour" aria-labelledby="tourTitle" aria-describedby="tourText">
+      <div class="tour-spot none" id="tourSpot" aria-hidden="true"></div>
+      <div class="tour-card" id="tourCard">
+        <span class="tour-tag" id="tourTag"></span>
+        <button class="x" id="tourClose" type="button" aria-label="Close the tour">✕</button>
+        <h2 id="tourTitle"></h2>
+        <p class="tour-text" id="tourText"></p>
+        <div class="tour-dots" id="tourDots" aria-hidden="true"></div>
+        <div class="tour-acts">
+          <button class="btn" id="tourBack" type="button"></button>
+          <button class="btn yellow" id="tourNext" type="button"></button>
+        </div>
+        <p class="sr" id="tourSay" aria-live="polite"></p>
       </div>
     </dialog>
 
@@ -1874,11 +1924,14 @@
       });
 
       document.addEventListener("keydown", (e) => {
-        if (dlg.open || shareDlg.open || curDlg.open || e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
+        if (dlg.open || shareDlg.open || curDlg.open || tour.open || e.metaKey || e.ctrlKey || e.altKey || e.target.closest("input, textarea")) return;
         const k = e.key.toLowerCase();
         if (k === "/") {
           e.preventDefault();
           q.focus();
+        } else if (k === "?") {
+          e.preventDefault();
+          startTour();
         } else if (k === "n") {
           e.preventDefault();
           openDialog();
@@ -1932,6 +1985,7 @@
       // ---------- Curator card: your name and username, kept on this device ----------
       const CUR_KEY = "rasaCurator";
       let joinedNow = false; // this browser's first visit was just counted
+      let newHere = false; // this is the browser's first visit, so the tour opens by itself
       // Made-up usernames pair two words that start with the same letter: @velvet.vinyl, @moonlit.matinee
       const HANDLE_WORDS = [
         ["bold breezy bright", "ballad bookmark blues"],
@@ -1969,6 +2023,7 @@
         if (!c) {
           count("joined", true); // the first visit from this browser
           joinedNow = counting;
+          newHere = true;
         }
         return out;
       }
@@ -3075,6 +3130,135 @@
             .catch(() => {}); // the counter is off or out of reach: no stickers
         }, { rootMargin: "200px 0px" });
         io.observe($("#feedback"));
+      }
+
+      // ---------- Tour: a few short steps, each lighting up one part of Rasa ----------
+      // It opens by itself on a browser's first visit. After that it's under the sign (Take a tour ✦) and on the ? key.
+      const tour = $("#tour"), tourSpot = $("#tourSpot"), tourCard = $("#tourCard"), tourBack = $("#tourBack"), tourNext = $("#tourNext");
+      const TOUR_KEY = "rasaTour"; // this browser has seen the tour, so it doesn't open by itself again
+      const TOUR = [
+        { intro: true, title: "Welcome to Rasa", text: "Your pocket museum for the songs, books, series and movies you love. Want a quick tour? It takes 30 seconds." },
+        { at: () => addBtn, title: "Add what you love", text: "Tap Add new. Pick a shelf, type the name and save. Rasa finds the cover for you." },
+        { at: () => grid.querySelector(".card"), title: "Flip a card", text: "Tap any card to turn it over. Give it stars and write why it matters to you." },
+        { at: () => filtersEl, title: "Pick a shelf", text: "Show only your music, books, series or movies. Tap All to see everything again." },
+        { at: () => [$(".search"), surpriseBtn], title: "Find it fast", text: "Search your cards, or tap Surprise me when you can't choose." },
+        { at: () => shareBtn, title: "Share your shelf", text: "Turn your favourite cards into a picture for your Stories." },
+        { at: () => curBtn, title: "Make it yours", text: () => `Tap here to add your name.${syncReady ? " Sign in with Google to keep your shelf on all your devices." : ""}` },
+        { end: true, at: () => pet, title: "You're all set!", text: "This is Rasu, your little buddy. Now add one thing you love." },
+      ];
+      let tourSteps = [], tourAt = 0, tourRaf = 0, tourGaze = 0;
+      const calm = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const tourEls = (s) => [s.at?.()].flat().filter((el) => el && el.getClientRects().length);
+
+      function startTour() {
+        if (tour.open) return;
+        [dlg, curDlg, shareDlg].forEach((d) => d.open && d.close());
+        tourSteps = TOUR.filter((s) => !s.at || tourEls(s).length); // with no cards yet, there's no card to flip
+        tourAt = 0;
+        tour.showModal();
+        addEventListener("scroll", placeTour, { passive: true });
+        addEventListener("resize", placeTour);
+        showStep();
+      }
+      function showStep() {
+        const s = tourSteps[tourAt], steps = tourSteps.filter((x) => !x.intro && !x.end), n = steps.indexOf(s) + 1;
+        const tag = s.intro ? "Quick tour" : s.end ? "All done ✦" : `Step ${n} of ${steps.length}`;
+        const text = typeof s.text === "function" ? s.text() : s.text;
+        $("#tourTag").textContent = tag;
+        $("#tourTitle").textContent = s.title;
+        $("#tourText").textContent = text;
+        $("#tourDots").innerHTML = n ? steps.map((x) => `<i${x === s ? ' class="on"' : ""}></i>`).join("") : "";
+        tourBack.textContent = s.intro ? "No thanks" : s.end ? "Done" : "Back";
+        tourNext.textContent = s.intro ? "Show me around" : s.end ? "Add something I love" : "Next";
+        if (tourAt) $("#tourSay").textContent = `${tag}. ${s.title}. ${text}`; // the first step is read out with the dialog
+        const el = tourEls(s)[0];
+        if (el && !el.closest(".dock")) {
+          // A tall part (a card on a phone) goes to the top, leaving room for the tour card under it; others to the middle
+          const r = el.getBoundingClientRect(), tall = r.height > innerHeight * 0.4;
+          scrollTo({ top: scrollY + r.top - (tall ? 24 : (innerHeight - r.height) / 2), behavior: calm() ? "auto" : "smooth" });
+        }
+        placeTour();
+        if (!calm()) tourCard.animate([{ opacity: 0, transform: "translateY(10px)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out" });
+        tourNext.focus({ preventScroll: true });
+        clearTimeout(tourGaze);
+        tourGaze = setTimeout(() => { // Rasu looks at whatever is lit up
+          const r = tourSpot.getBoundingClientRect();
+          if (tour.open && r.width) lookAt(r.left + r.width / 2, r.top + r.height / 2, 4000);
+        }, 450);
+      }
+      // The light box covers the target. The card goes under it, over it or beside it, wherever it fits whole, and
+      // otherwise on the side with more room. It always stays inside the screen.
+      function placeTour() {
+        cancelAnimationFrame(tourRaf);
+        tourRaf = requestAnimationFrame(() => {
+          const s = tourSteps[tourAt];
+          if (!tour.open || !s) return;
+          const vw = document.documentElement.clientWidth, vh = innerHeight, pad = 8, m = 12, gap = 16;
+          const rs = tourEls(s).map((el) => el.getBoundingClientRect());
+          const r = rs.length && {
+            l: Math.min(...rs.map((x) => x.left)) - pad, t: Math.min(...rs.map((x) => x.top)) - pad,
+            r: Math.max(...rs.map((x) => x.right)) + pad, b: Math.max(...rs.map((x) => x.bottom)) + pad,
+          };
+          tourSpot.classList.toggle("none", !r);
+          Object.assign(tourSpot.style, r
+            ? { left: `${r.l}px`, top: `${r.t}px`, width: `${r.r - r.l}px`, height: `${r.b - r.t}px` }
+            : { left: `${vw / 2}px`, top: `${vh / 2}px`, width: "0px", height: "0px" });
+          const cw = tourCard.offsetWidth, ch = tourCard.offsetHeight;
+          let x = (vw - cw) / 2, y = (vh - ch) / 2;
+          if (r) {
+            const mid = (r.l + r.r) / 2 - cw / 2, below = vh - r.b - gap >= ch + m, above = r.t - gap >= ch + m;
+            const right = vw - r.r - gap >= cw + m, left = r.l - gap >= cw + m;
+            if (below || above || !(right || left)) {
+              x = mid;
+              y = below || (!above && vh - r.b >= r.t) ? r.b + gap : r.t - gap - ch;
+            } else {
+              x = right ? r.r + gap : r.l - gap - cw;
+              y = r.t;
+            }
+          }
+          tourCard.style.left = `${Math.round(Math.max(m, Math.min(x, vw - cw - m)))}px`;
+          tourCard.style.top = `${Math.round(Math.max(m, Math.min(y, vh - ch - m)))}px`;
+        });
+      }
+      tourNext.addEventListener("click", () => {
+        if (tourSteps[tourAt].end) {
+          tour.close();
+          openDialog();
+          return;
+        }
+        tourAt++;
+        showStep();
+      });
+      tourBack.addEventListener("click", () => {
+        const s = tourSteps[tourAt];
+        if (s.intro || s.end) return tour.close();
+        tourAt--;
+        showStep();
+      });
+      $("#tourClose").addEventListener("click", () => tour.close());
+      tour.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" && !tourSteps[tourAt].end) tourNext.click();
+        else if (e.key === "ArrowLeft" && tourAt > 0) {
+          tourAt--;
+          showStep();
+        }
+      });
+      // The page stays put while the tour is open, so the light stays on what it's explaining
+      tour.addEventListener("wheel", (e) => e.preventDefault(), { passive: false });
+      tour.addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+      tour.addEventListener("close", () => {
+        try { localStorage.setItem(TOUR_KEY, "1"); } catch {}
+        removeEventListener("scroll", placeTour);
+        removeEventListener("resize", placeTour);
+        clearTimeout(tourGaze);
+        petMood("grin");
+        hop();
+      });
+      $("#tourLink").addEventListener("click", startTour);
+      let tourSeen = true; // if this browser can't remember, the tour doesn't open by itself on every visit
+      try { tourSeen = !!localStorage.getItem(TOUR_KEY); } catch {}
+      if (newHere && !tourSeen && !location.hash) {
+        document.fonts.ready.then(() => setTimeout(() => [dlg, curDlg, shareDlg].some((d) => d.open) || startTour(), 600));
       }
 
       // ---------- Start ----------
