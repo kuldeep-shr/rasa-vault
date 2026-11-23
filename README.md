@@ -11,6 +11,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Four shelves.** Music, Books, Web Series and Movies, each with its own colour and doodle wallpaper.
 - **Flip cards.** The back of a card holds your note and a five-star rating you can tap.
 - **Covers that keep their shape.** Album sleeves get a vinyl record, posters sit on a film strip, and books get a spine and pages. Nothing is cropped.
+- **One card per thing.** Start typing something that's already on your shelf and Rasa points to the card you have. Saving opens that card instead of making a second one. Titles match whatever the case, accents or punctuation, with or without a leading "The", "A" or "An". The same title by a different creator is a different thing, so two songs called "Hurt" can both stay.
 - **Photos your way.** Upload, paste or drop an image onto a card, or let Rasa look one up when you save. Anything without a photo gets a poster made from its title.
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
 - **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.

@@ -468,6 +468,16 @@
       .pick input:checked + span { background: var(--c); transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--ink); }
       .pick input:focus-visible + span { outline: 3px dashed var(--ink); outline-offset: 2px; }
       .dlg-body .btn { width: 100%; margin-top: 4px; padding: 15px; font-size: 16px; }
+      /* Typing something the vault already has points to that card instead of making a second one */
+      .dupe {
+        display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--paper);
+        border: 3px solid var(--ink); border-radius: 12px; box-shadow: 3px 3px 0 var(--ink);
+        font-size: 14px; font-weight: 600; line-height: 1.35; animation: rise 0.3s var(--spring);
+      }
+      .dupe[hidden] { display: none; }
+      .dupe span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+      .dupe small { display: block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.7; }
+      .dlg-body .dupe .btn { width: auto; margin: 0; padding: 8px 12px; font-size: 12px; flex-shrink: 0; }
 
       /* ---------- About: who we are and why Rasa exists ---------- */
       a { color: inherit; cursor: var(--cur-hot); }
@@ -904,6 +914,7 @@
               <label><span class="sr">Creator</span><input class="inp" id="fCreator" maxlength="80" placeholder="By… (optional)" autocomplete="off" /></label>
             </div>
           </div>
+          <p class="dupe" id="dupe" role="status" hidden></p>
           <details class="more" id="more">
             <summary>Rating &amp; note</summary>
             <div class="more-body">
@@ -1001,7 +1012,7 @@
       const addBtn = $("#addBtn"), surpriseBtn = $("#surprise"), toastEl = $("#toast"), fx = $("#fx");
       const dlg = $("#dlg"), form = $("#form"), fStars = $("#fStars"), fTitle = $("#fTitle"), fCreator = $("#fCreator"), fNote = $("#fNote");
 
-      let filter = "all", editingId = null, formRating = 0, toastTimer, spotTimer, lastPick;
+      let filter = "all", editingId = null, editFrom = null, formRating = 0, toastTimer, spotTimer, lastPick;
       const flipped = new Set();
 
       // ---------- Storage ----------
@@ -1328,6 +1339,7 @@
         if (pull()) render(false);
         const it = vault.find((x) => x.id === id);
         editingId = it ? it.id : null;
+        editFrom = it ? { category: it.category, title: it.title, creator: it.creator } : null;
         form.reset();
         const c = it?.category || cat || (filter !== "all" ? filter : "book");
         form.elements.cat.value = c;
@@ -1343,7 +1355,8 @@
         if (it?.photo) photoURL(it.id).then((u) => editingId === it.id && setPreview(u));
         $("#more").open = !!it;
         $("#dlgTitle").textContent = it ? "Edit interest" : "New interest";
-        $("#fSubmit").textContent = it ? "Save changes" : "Save to vault";
+        $("#fSubmit").dataset.label = it ? "Save changes" : "Save to vault";
+        checkDupe();
         dlg.showModal();
       }
 
@@ -1352,6 +1365,8 @@
         e.preventDefault();
         if (busy) return;
         pull();
+        const dupe = currentDupe();
+        if (dupe) return showExisting(dupe.id); // one card per thing: open the one already here
         busy = true;
         const data = {
           category: form.elements.cat.value,
@@ -1678,6 +1693,59 @@
         }
         toast(url ? "Found a stunning shot ✦" : "No photo found. Drop one on the card?", null, url ? "grin" : "o");
       }
+      // ---------- One card per thing ----------
+      // Adding something the vault already has opens that card instead of making a second one. It's the same thing
+      // when the shelf and title match, ignoring case, accents, spaces, punctuation and a leading "The", "A" or "An".
+      // Creators only count when both are given, so two songs called "Hurt" by different artists can both stay.
+      const foldText = (s) =>
+        String(s ?? "").normalize("NFKD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^\p{L}\p{M}\p{N}]/gu, "");
+      const titleKey = (s) => foldText(String(s ?? "").trim().replace(/^(the|a|an)\s+/i, ""));
+      function findDupe({ category, title, creator }, except = null) {
+        const t = titleKey(title), c = foldText(creator);
+        if (!t) return null;
+        return vault.find((x) => x.id !== except && x.category === category && titleKey(x.title) === t && (!c || !foldText(x.creator) || foldText(x.creator) === c)) || null;
+      }
+      // The card that the dialog's shelf, title and creator point to. Editing a card without renaming it never
+      // counts, so doubles saved before this check existed can still be edited.
+      function currentDupe() {
+        const now = { category: form.elements.cat.value, title: fTitle.value, creator: fCreator.value };
+        const kept = editFrom && now.category === editFrom.category && titleKey(now.title) === titleKey(editFrom.title) && foldText(now.creator) === foldText(editFrom.creator);
+        return kept ? null : findDupe(now, editingId);
+      }
+      const dupeEl = $("#dupe"), fSubmit = $("#fSubmit");
+      let dupeId = null;
+      function checkDupe() {
+        const it = currentDupe();
+        dupeId = it?.id ?? null;
+        dupeEl.hidden = !it;
+        dupeEl.innerHTML = it
+          ? `<span><small>Already on your ${esc(CATS[it.category].label)} shelf</small><b>${esc(it.title)}</b>${it.creator ? ` by ${esc(it.creator)}` : ""}</span><button class="btn sm yellow" type="button" data-open>Open it ↗</button>`
+          : "";
+        fSubmit.textContent = it ? "Open the one you have" : fSubmit.dataset.label;
+      }
+      // Bring a card into view, give it a wiggle and open it to its note
+      function showExisting(id) {
+        const it = vault.find((x) => x.id === id);
+        if (!it) return checkDupe();
+        dlg.close();
+        flipped.delete(id);
+        if ((filter !== "all" && filter !== it.category) || !matches(it, q.value.trim().toLowerCase())) {
+          q.value = "";
+          setFilter(it.category, true);
+        } else render(false);
+        toast("Déjà vu! It's already in your vault ✦");
+        const card = grid.querySelector(`[data-id="${id}"]`);
+        if (!card) return;
+        setTimeout(() => {
+          spotlight(card, "Already here ✦");
+          setTimeout(() => card.isConnected && !card.classList.contains("flipped") && flip(card), reduce ? 0 : 900);
+        }, reduce ? 0 : 350);
+      }
+      fTitle.addEventListener("input", checkDupe);
+      fCreator.addEventListener("input", checkDupe);
+      $("#picks").addEventListener("change", checkDupe);
+      dupeEl.addEventListener("click", (e) => e.target.closest("[data-open]") && dupeId !== null && showExisting(dupeId));
+
       // Close on a backdrop click, but not when a text selection drag ends outside the box
       let downOnBackdrop = false;
       dlg.addEventListener("pointerdown", (e) => (downOnBackdrop = e.target === dlg));
@@ -1883,6 +1951,7 @@
       function catchUp() {
         if (!pull()) return;
         render(false);
+        if (dlg.open) checkDupe();
       }
       addEventListener("storage", (e) => {
         if (e.key === KEY || e.key === null) catchUp();
