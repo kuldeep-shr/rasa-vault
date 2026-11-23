@@ -40,6 +40,8 @@ Rasa is one static file, so any static host works:
 
 Everything stays in the visitor's browser: items, name, username and feedback answers in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
 
+Every tab and window of the same browser shares that vault. A change made in one shows in the others straight away, and each change starts from the latest saved copy, so an older tab never writes over a newer one. Another browser or device has a vault of its own.
+
 ## Visit counts
 
 Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the site owner can see how it's doing:

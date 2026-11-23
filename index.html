@@ -1022,9 +1022,15 @@
         };
       }
 
-      function load() {
+      // stored: the saved vault as this tab last read or wrote it, so a save from another tab is easy to spot
+      const readStore = () => {
+        try { return localStorage.getItem(KEY); } catch { return undefined; }
+      };
+      let stored = readStore();
+
+      function load(raw = stored) {
         let data = null;
-        try { data = JSON.parse(localStorage.getItem(KEY)); } catch {}
+        try { data = JSON.parse(raw); } catch {}
         if (!Array.isArray(data)) return SEED.map((s) => ({ ...s, added: 0 }));
         const seen = new Set();
         let next = Date.now();
@@ -1036,7 +1042,23 @@
       }
 
       function save() {
-        try { localStorage.setItem(KEY, JSON.stringify(vault)); } catch {}
+        const json = JSON.stringify(vault);
+        try {
+          localStorage.setItem(KEY, json);
+          stored = json;
+        } catch {}
+      }
+
+      // Every tab and window of this browser shares one vault. pull() takes in what another one saved, so its
+      // changes show here too, and every change starts with it, so an older copy here never writes over them.
+      // Returns true when the vault changed.
+      function pull() {
+        const raw = readStore();
+        if (raw == null || raw === stored) return false; // unreadable, never saved, or nothing new
+        stored = raw;
+        vault = load(raw);
+        for (const id of flipped) if (!vault.some((x) => x.id === id)) flipped.delete(id);
+        return true;
       }
 
       let vault = load();
@@ -1177,8 +1199,9 @@
       }
 
       function rate(id, v) {
+        pull();
         const it = vault.find((x) => x.id === id);
-        if (!it) return;
+        if (!it) return render(false); // removed in another tab
         it.rating = it.rating === v ? 0 : v;
         if (it.rating === 5) toast("Five stars? Iconic ✦");
         else if (it.rating === 1) toast("Oof. Harsh.", null, "o");
@@ -1189,15 +1212,22 @@
 
       function removeItem(id, card) {
         const done = () => {
+          pull();
           const i = vault.findIndex((x) => x.id === id);
-          if (i < 0) return;
+          if (i < 0) return render(false);
           const [item] = vault.splice(i, 1);
           flipped.delete(id);
-          if (item.photo) setTimeout(() => vault.some((x) => x.id === id) || dropPhoto(id), 7000); // once Undo has expired
+          if (item.photo) {
+            setTimeout(() => { // once Undo has expired
+              if (pull()) render(false);
+              vault.some((x) => x.id === id) || dropPhoto(id);
+            }, 7000);
+          }
           save();
           render(false);
           toast(`Bye bye, “${item.title}”…`, () => {
-            vault.splice(Math.min(i, vault.length), 0, item);
+            pull();
+            if (!vault.some((x) => x.id === item.id)) vault.splice(Math.min(i, vault.length), 0, item);
             save();
             render(false, item.id);
             toast("Phew! It's back ✦");
@@ -1295,6 +1325,7 @@
       }
 
       function openDialog(id = null, cat = "") {
+        if (pull()) render(false);
         const it = vault.find((x) => x.id === id);
         editingId = it ? it.id : null;
         form.reset();
@@ -1320,6 +1351,7 @@
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         if (busy) return;
+        pull();
         busy = true;
         const data = {
           category: form.elements.cat.value,
@@ -1328,33 +1360,37 @@
           note: fNote.value.trim(),
           rating: formRating,
         };
-        const editing = vault.find((x) => x.id === editingId);
-        let id;
-        if (editing) {
-          Object.assign(editing, data);
-          id = editing.id;
-        } else {
-          id = Math.max(Date.now(), ...vault.map((x) => x.id + 1));
-          vault.push({ id, added: Date.now(), ...data });
-          count(`added-${data.category}`, true); // only the shelf, never the title
-        }
-        const item = vault.find((x) => x.id === id);
+        // Storing a photo takes a moment, so the vault itself changes after it, all at once, from the latest copy
+        const id = vault.some((x) => x.id === editingId) ? editingId : Math.max(Date.now(), ...vault.map((x) => x.id + 1));
+        let photoKept = false;
         if (formPhoto) {
           try {
             await idb("readwrite", (s) => s.put(formPhoto, id));
             cachePhoto(id, tempURL);
             tempURL = "";
-            item.photo = true;
+            photoKept = true;
           } catch {
             toast("I couldn't keep that photo, sorry.", null, "sad");
           }
-        } else if (formCleared && item.photo) {
+        }
+        pull();
+        let item = vault.find((x) => x.id === id);
+        const editing = !!item; // an edited item that another tab removed meanwhile comes back as new
+        if (item) Object.assign(item, data);
+        else {
+          item = { id, added: Date.now(), ...data };
+          vault.push(item);
+          count(`added-${data.category}`, true); // only the shelf, never the title
+        }
+        if (photoKept) item.photo = true;
+        else if (formCleared && item.photo) {
           item.photo = false;
           dropPhoto(id);
         }
         const auto = AUTO_PHOTOS && !editing && !item.photo; // new item, no photo chosen: find one automatically
         if (auto) fetching.add(id); // the card shows a shimmer meanwhile
         save();
+        if (photoKept) announce(id);
         busy = false;
         dlg.close();
 
@@ -1409,8 +1445,18 @@
       }
       function dropPhoto(id) {
         cachePhoto(id, "");
-        idb("readwrite", (s) => s.delete(id)).catch(() => {});
+        idb("readwrite", (s) => s.delete(id)).catch(() => {}).then(() => announce(id));
       }
+      // Tabs share IndexedDB too, but a new photo can leave the saved vault exactly as it was, so the other
+      // tabs hear which card's photo changed and load it again
+      const tabs = "BroadcastChannel" in window ? new BroadcastChannel("rasa") : null;
+      const announce = (id) => tabs?.postMessage({ photo: id });
+      tabs?.addEventListener("message", ({ data }) => {
+        if (!Number.isFinite(data?.photo)) return;
+        cachePhoto(data.photo, "");
+        pull();
+        render(false);
+      });
       // Clear photos whose items no longer exist
       idb("readonly", (s) => s.getAllKeys())
         .then((keys) => keys.forEach((k) => vault.some((x) => x.id === k && x.photo) || idb("readwrite", (s) => s.delete(k))))
@@ -1459,13 +1505,17 @@
         }
       }
       async function setCardPhoto(id, file) {
-        const it = vault.find((x) => x.id === id);
         try {
           const blob = await shrink(file);
           await idb("readwrite", (s) => s.put(blob, id));
           cachePhoto(id, URL.createObjectURL(blob));
-          it.photo = true;
-          save();
+          pull();
+          const it = vault.find((x) => x.id === id);
+          if (it) {
+            it.photo = true;
+            save();
+          }
+          announce(id);
           render(false);
           toast("Ooh, sharp new photo ✦");
         } catch {
@@ -1606,12 +1656,17 @@
         let url = "";
         try {
           const small = await shrink(await findPhoto(it));
-          if (vault.includes(it) && !it.photo) {
+          const still = () => (pull(), vault.find((x) => x.id === id && !x.photo)); // not removed, and no photo yet
+          if (still()) {
             await idb("readwrite", (s) => s.put(small, id));
             url = URL.createObjectURL(small);
             cachePhoto(id, url);
-            it.photo = true;
-            save();
+            const now = still();
+            if (now) {
+              now.photo = true;
+              save();
+            }
+            announce(id);
           }
         } catch {}
         fetching.delete(id);
@@ -1821,6 +1876,24 @@
       let curDown = false; // close on a backdrop click, as the other dialogs do
       curDlg.addEventListener("pointerdown", (e) => (curDown = e.target === curDlg));
       curDlg.addEventListener("click", (e) => curDown && e.target === curDlg && curDlg.close());
+
+      // ---------- Open tabs stay in step ----------
+      // When another tab or window of this browser saves, its changes show here straight away. Another browser or
+      // device has a vault of its own, because nothing leaves this one.
+      function catchUp() {
+        if (!pull()) return;
+        render(false);
+      }
+      addEventListener("storage", (e) => {
+        if (e.key === KEY || e.key === null) catchUp();
+        if (e.key === CUR_KEY && e.newValue) {
+          curator = loadCurator();
+          paintCurator();
+        }
+      });
+      // A tab that sat in the background, or came back with the Back button, catches up when it's shown again
+      document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && catchUp());
+      addEventListener("pageshow", (e) => e.persisted && catchUp());
 
       // ---------- Share my shelf: a picture of the shelf, sized for Stories ----------
       // Drawn on a canvas on this device. The picture only leaves it if you share or save it.
