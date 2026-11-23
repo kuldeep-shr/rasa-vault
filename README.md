@@ -1,6 +1,6 @@
 # Rasa
 
-A pocket museum for the music, books, web series and movies that moved you. Rasa is a single HTML file, with no build step, no backend and no account.
+A pocket museum for the music, books, web series and movies that moved you. Rasa is a single HTML file with no build step. It needs no account: sign in with Google only if you want the same shelf on all your devices.
 
 **Live demo:** [kuldeep-shr.github.io/rasa-vault](https://kuldeep-shr.github.io/rasa-vault/)
 
@@ -16,6 +16,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **Rasu.** A small pet on the dock that follows your cursor, reacts to what you do and naps when you go quiet.
 - **Share my shelf.** Turns the shelf you're looking at into a picture sized for Stories, with your six highest-rated cards and their covers, ready to share or save. It's drawn on your device.
 - **Your curator card.** A name and a username for your museum, under the sign. Rasa makes up a username for you, like `@velvet.vinyl` or `@moonlit.matinee`, and you can change both any time. Your shared pictures are signed with them.
+- **Sync across devices (optional).** Sign in with Google from your curator card and every device you use shows the same shelf: cards, ratings, notes, photos and your curator card. Changes arrive within seconds, deleting a card deletes it everywhere, and two devices that each added the same thing end up with one card.
 - **Feedback switches.** No form and nothing to type. Visitors switch on what feels true, like *I love Rasa* or *Make a phone app*, and send it to Rasu. Each knob is a sleepy face that wakes up and smiles when it's on. Beside them, two counters show how many curators Rasa has so far and how many have sent feedback.
 - **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
@@ -37,11 +38,58 @@ Rasa is one static file, so any static host works:
 - **GitHub Pages:** Settings → Pages → Deploy from a branch → `main`, root folder.
 - **Netlify or Cloudflare Pages:** upload the folder.
 
+On a new host, sign-in for sync only works once that domain is added to the Firebase project's authorized domains (see [Sync across devices](#sync-across-devices)).
+
 ## Where data is stored
 
-Everything stays in the visitor's browser: items, name, username and feedback answers in `localStorage`, and photos in IndexedDB. There is no server. Each visitor has their own vault, and clearing site data clears it.
+Without signing in, everything stays in the visitor's browser: items, name, username and feedback answers in `localStorage`, and photos in IndexedDB. Each visitor has their own vault, and clearing site data clears it.
 
-Every tab and window of the same browser shares that vault. A change made in one shows in the others straight away, and each change starts from the latest saved copy, so an older tab never writes over a newer one. Another browser or device has a vault of its own.
+Every tab and window of the same browser shares that vault. A change made in one shows in the others straight away, and each change starts from the latest saved copy, so an older tab never writes over a newer one. Another browser or device has a vault of its own, unless you sync.
+
+## Sync across devices
+
+Sync is switched on by the Firebase web config in `SYNC` in `index.html`. While its `apiKey` is empty, as it is for now, there's no sync button and nothing changes.
+
+With the config in, sync is still off for each visitor until they press **Sign in with Google** on their curator card, or **Sync devices ☁** under the sign. Until then, the page loads nothing from Google.
+
+Once signed in, the shelf is also kept in Cloud Firestore (in Mumbai, `asia-south1`) under that Google account, and every device signed in to the same account shows the same shelf. The browser keeps its own copy too, so Rasa still works offline and catches up when it's back. Signing out keeps the shelf on that device and stops syncing it.
+
+| What | Where in Firestore |
+| --- | --- |
+| Cards | `shelves/{uid}/items/{id}`: shelf, title, creator, rating, note, when it was added and when it last changed |
+| Photos | `shelves/{uid}/photos/{id}`: the JPEG, made smaller when needed to fit Firestore's 1 MB limit |
+| Curator card | `shelves/{uid}`: name and username |
+
+How devices agree:
+
+- **The newest change wins, card by card.** A rating changed on one device and a note changed on another both survive, and every tab and device stays in step without writing back and forth.
+- **Deleting a card deletes it everywhere.** A deleted card leaves a small note of when it went, so a device that still has the old copy doesn't bring it back. Undo brings it back everywhere.
+- **One card per thing, across devices too.** If two devices each added the same thing before they synced, the two cards become one: the one with a photo, otherwise the older one. It also takes the other's creator, rating and note when it has none, and keeps both notes if they differ.
+- **Example cards** that nobody has touched never override a real change, and an example card removed on any device is removed everywhere.
+
+Only the signed-in account can read or write its shelf. These are the Firestore security rules:
+
+```text
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /shelves/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
+```
+
+The Firebase settings in `SYNC` in `index.html` (API key, project ID and so on) are meant to be public. They only identify the project, and the rules above keep each shelf private.
+
+A fork should use its own Firebase project, on the free Spark plan:
+
+1. Create a project in the [Firebase console](https://console.firebase.google.com).
+2. Turn on **Authentication → Sign-in method → Google**, and add your site under **Authentication → Settings → Authorized domains**.
+3. Create a **Firestore** database in production mode and publish the rules above.
+4. Register a web app and copy its config into `SYNC`.
+
+Leave `apiKey` empty to turn sync off.
 
 ## Visit counts
 
@@ -53,6 +101,7 @@ Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the
 | `joined` | A browser opens Rasa for the first time. |
 | `added-movie`, `added-book`, `added-music`, `added-series` | Someone saves a new item. Only the shelf is sent. |
 | `shared-shelf`, `saved-shelf` | Someone shares or saves a picture of their shelf. |
+| `sync-on` | Someone signs in with Google to sync their shelf. |
 | `feedback-sent`, plus `feedback-love`, `feedback-easy`, `feedback-friend`, `feedback-app`, `feedback-shelves` | Someone presses **Send to Rasu**. One `feedback-sent`, and one count for each switch they turned on. Sending the same answers again from the same browser isn't counted. |
 
 Only these plain numbers are sent. There are no cookies, and a title, note, name or username is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted, except for feedback, which is only sent when someone presses Send.
@@ -90,11 +139,11 @@ Only the title and creator are sent, and only on that press. No API keys are nee
 
 ## Contributing
 
-Issues and pull requests are welcome. The whole app lives in `index.html`: styles at the top, markup in the middle and the script at the bottom. Please keep it free of dependencies and build tools.
+Issues and pull requests are welcome. The whole app lives in `index.html`: styles at the top, markup in the middle and the script at the bottom. Please keep it free of build tools. The only outside code is the Firebase SDK, which loads from Google's CDN when someone signs in to sync.
 
 ## Credits
 
-Cover lookups use the [iTunes Search API](https://performance-partners.apple.com/search-api), [TVmaze](https://www.tvmaze.com/api) (data licensed CC BY-SA) and [Open Library](https://openlibrary.org/developers/api). The typeface is [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk).
+Cover lookups use the [iTunes Search API](https://performance-partners.apple.com/search-api), [TVmaze](https://www.tvmaze.com/api) (data licensed CC BY-SA) and [Open Library](https://openlibrary.org/developers/api). Sync uses [Firebase](https://firebase.google.com) Authentication and Cloud Firestore. The typeface is [Space Grotesk](https://fonts.google.com/specimen/Space+Grotesk).
 
 ## License
 

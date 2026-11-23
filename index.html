@@ -558,6 +558,14 @@
       .handle .inp { flex: 1; min-width: 0; }
       .handle .btn { flex-shrink: 0; width: auto; margin-top: 0; padding: 10px 12px; font-size: 12px; }
       .cur-note { color: #555; font-size: 13px; font-weight: 500; line-height: 1.4; }
+      /* Sync: a dashed card under the curator form, solid and minty once you're signed in */
+      .sync { display: grid; gap: 8px; margin-top: 4px; padding: 12px 14px 14px; background: var(--paper); border: 2.5px dashed var(--ink); border-radius: 12px; }
+      .sync[hidden] { display: none; }
+      .sync.on { background: #dff5f1; border-style: solid; }
+      .sync-head { font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      .dlg-body .sync .btn { margin-top: 2px; padding: 12px; font-size: 14px; }
+      .sync-link { padding: 2px 6px; background: none; border: 0; font-family: inherit; cursor: var(--cur-hot); }
+      .sync-link[hidden] { display: none; }
 
       /* ---------- Share my shelf ---------- */
       .share-dlg { width: min(400px, 100% - 2 * var(--edge)); }
@@ -773,7 +781,7 @@
       <button class="curator" id="curator" type="button" aria-haspopup="dialog">
         <span class="avatar" id="curAvatar" aria-hidden="true"></span><span class="who" id="curWho"></span><span class="pen" aria-hidden="true">✎</span>
       </button>
-      <p class="hero-links"><a class="about-link" href="#about">About Rasa ↓</a><a class="about-link" href="#feedback">Feedback ↓</a></p>
+      <p class="hero-links"><a class="about-link" href="#about">About Rasa ↓</a><a class="about-link" href="#feedback">Feedback ↓</a><button class="about-link sync-link" id="syncLink" type="button" hidden>Sync devices ☁</button></p>
     </header>
 
     <main class="wrap">
@@ -853,7 +861,7 @@
         </div>
         <ul class="about-values">
           <li style="--v: var(--pink)"><b>One shelf, four kinds</b><p>Music, books, web series and movies together, instead of spread over four apps.</p></li>
-          <li style="--v: var(--blue)"><b>Yours alone</b><p>No account, no ads, no cookies. Your shelf lives in this browser. Rasa only counts visits, saves and the feedback you send, as plain numbers, and a title and its creator leave only when it looks up a cover.</p></li>
+          <li style="--v: var(--blue)"><b>Yours alone</b><p>No account needed, no ads, no cookies. Your shelf lives in this browser, unless you sign in with Google to sync it across your devices; then it's also kept in Rasa's database, where only your account can read it. Rasa only counts visits, saves and the feedback you send, as plain numbers, and a title and its creator leave only when it looks up a cover.</p></li>
           <li style="--v: var(--mint)"><b>Kept, not scrolled</b><p>No feed, no likes, no streaks. Nothing here is built to keep you busy.</p></li>
         </ul>
       </div>
@@ -946,8 +954,13 @@
               <button class="btn sm" id="curDice" type="button" aria-label="Make up a new username">🎲 New</button>
             </div>
           </div>
-          <p class="cur-note" id="curHint">Letters, numbers, dots and underscores. Shown on your page and on the pictures you share, and kept on this device.</p>
+          <p class="cur-note" id="curHint">Letters, numbers, dots and underscores. Shown on your page and on the pictures you share.</p>
           <button class="btn mint" type="submit">Save</button>
+          <div class="sync" id="sync" hidden>
+            <p class="sync-head" id="syncHead">Your shelf on every device</p>
+            <p class="cur-note" id="syncNote"></p>
+            <button class="btn" id="syncBtn" type="button">Sign in with Google</button>
+          </div>
         </div>
       </form>
     </dialog>
@@ -1030,6 +1043,8 @@
           note: String(x.note ?? seed.note ?? "").slice(0, 280),
           added: Number(x.added) || 0,
           photo: x.photo === true,
+          photoV: x.photo === true ? Number(x.photoV) || 1 : 0, // which photo it is, so a newer one replaces it on other devices
+          updated: Number(x.updated) || 0, // when it last changed: between devices, the newer copy wins
         };
       }
 
@@ -1042,7 +1057,7 @@
       function load(raw = stored) {
         let data = null;
         try { data = JSON.parse(raw); } catch {}
-        if (!Array.isArray(data)) return SEED.map((s) => ({ ...s, added: 0 }));
+        if (!Array.isArray(data)) return SEED.map((s) => clean({ ...s, added: 0 }));
         const seen = new Set();
         let next = Date.now();
         return data.map(clean).filter(Boolean).map((it) => {
@@ -1052,12 +1067,55 @@
         });
       }
 
-      function save() {
+      // fromCloud: the change came from another device and already carries its times, so it isn't sent back
+      function save(fromCloud = false) {
+        if (!fromCloud) stamp();
         const json = JSON.stringify(vault);
         try {
           localStorage.setItem(KEY, json);
           stored = json;
         } catch {}
+        if (!fromCloud) cloud?.soon();
+      }
+
+      // For sync: a card that changed gets a new time, and a removed card leaves a note of when, so a device that
+      // still has the old copy doesn't bring it back. Untouched example cards keep time 0, so any real change wins.
+      let cloud = null; // the sync engine, while signed in
+      const GONE_KEY = "rasaGone";
+      const readGone = () => {
+        try { return JSON.parse(localStorage.getItem(GONE_KEY)) || {}; } catch { return {}; }
+      };
+      const writeGone = (g) => {
+        const old = Date.now() - 180 * 864e5; // forget removals after six months (example cards' notes, time 1, stay)
+        for (const id in g) if (g[id] > 1 && g[id] < old) delete g[id];
+        try { localStorage.setItem(GONE_KEY, JSON.stringify(g)); } catch {}
+      };
+      // What a card says, tidied first: a card that only gained default fields hasn't changed
+      const sig = (x) => {
+        const c = clean(x) || x;
+        return JSON.stringify([c.category, c.title, c.creator, c.rating, c.note, c.photo, c.photoV]);
+      };
+      const pristine = (x) => {
+        const s = SEED.find((s) => s.id === x.id);
+        return !!s && !x.photo && x.category === s.category && x.title === s.title && x.creator === s.creator && x.rating === s.rating && x.note === s.note;
+      };
+      function stamp() {
+        let before = [];
+        try { before = JSON.parse(stored); } catch {}
+        const prev = new Map((Array.isArray(before) ? before : []).map(clean).filter(Boolean).map((x) => [x.id, x]));
+        const now = Date.now(), gone = readGone();
+        let goneChanged = false;
+        for (const x of vault) {
+          const p = prev.get(x.id);
+          if (!p) {
+            if (gone[x.id] || !pristine(x)) x.updated = now; // brought back with Undo counts as a change, even for an example card
+            if (gone[x.id]) goneChanged = delete gone[x.id];
+          } else if (sig(p) !== sig(x)) x.updated = now;
+        }
+        for (const id of prev.keys()) {
+          if (!vault.some((x) => x.id === id)) goneChanged = !!(gone[id] = now);
+        }
+        if (goneChanged) writeGone(gone);
       }
 
       // Every tab and window of this browser shares one vault. pull() takes in what another one saved, so its
@@ -1073,6 +1131,14 @@
       }
 
       let vault = load();
+      // Shelves saved before sync existed don't say which example cards were removed. Every shelf starts with all of
+      // them, so a saved shelf without one removed it: note that (time 1), so sync can't bring it back from another device
+      if (Array.isArray((() => { try { return JSON.parse(stored); } catch {} })())) {
+        const gone = readGone();
+        let noted = false;
+        for (const s of SEED) if (!vault.some((x) => x.id === s.id) && !(s.id in gone)) noted = !!(gone[s.id] = 1);
+        if (noted) writeGone(gone);
+      }
 
       // ---------- Static UI ----------
       const phrases = ["The essence of art", "Curated illusions", "Your digital brain", '<b class="mq-n">0</b> treasures and counting'];
@@ -1397,9 +1463,12 @@
           vault.push(item);
           count(`added-${data.category}`, true); // only the shelf, never the title
         }
-        if (photoKept) item.photo = true;
-        else if (formCleared && item.photo) {
+        if (photoKept) {
+          item.photo = true;
+          item.photoV = Date.now();
+        } else if (formCleared && item.photo) {
           item.photo = false;
+          item.photoV = 0;
           dropPhoto(id);
         }
         const auto = AUTO_PHOTOS && !editing && !item.photo; // new item, no photo chosen: find one automatically
@@ -1528,6 +1597,7 @@
           const it = vault.find((x) => x.id === id);
           if (it) {
             it.photo = true;
+            it.photoV = Date.now();
             save();
           }
           announce(id);
@@ -1679,6 +1749,7 @@
             const now = still();
             if (now) {
               now.photo = true;
+              now.photoV = Date.now();
               save();
             }
             announce(id);
@@ -1892,7 +1963,8 @@
         let c = null;
         try { c = JSON.parse(localStorage.getItem(CUR_KEY)); } catch {}
         const user = cleanHandle(c?.user);
-        const out = { name: String(c?.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
+        // at: when you last changed it, so the newest name and username win across your devices
+        const out = { name: String(c?.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle(), at: Number(c?.at) || 0 };
         if (out.user !== c?.user) saveCurator(out); // a new username is kept, so it stays the same next time
         if (!c) {
           count("joined", true); // the first visit from this browser
@@ -1908,7 +1980,7 @@
       const curBtn = $("#curator"), curDlg = $("#curDlg"), curForm = $("#curForm"), curName = $("#curName"), curUser = $("#curUser");
       function paintCurator() {
         const { name, user } = curator;
-        $("#curWho").innerHTML = `<small>Curated by</small><span class="line">${name ? `<b>${esc(name)}</b> <span class="at">@${esc(user)}</span>` : `<b>@${esc(user)}</b>`}</span>`;
+        $("#curWho").innerHTML = `<small>Curated by${cloud ? " · synced ☁" : ""}</small><span class="line">${name ? `<b>${esc(name)}</b> <span class="at">@${esc(user)}</span>` : `<b>@${esc(user)}</b>`}</span>`;
         const avatar = $("#curAvatar");
         avatar.textContent = [...(name || user)][0].toUpperCase();
         avatar.style.setProperty("--a", COLORS[[...user].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 997, 7) % COLORS.length]);
@@ -1934,8 +2006,9 @@
       curForm.addEventListener("submit", (e) => {
         e.preventDefault();
         const user = cleanHandle(curUser.value);
-        curator = { name: curName.value.trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle() };
+        curator = { name: curName.value.trim().slice(0, 40), user: user.length >= 3 ? user : makeHandle(), at: Date.now() };
         saveCurator(curator);
+        cloud?.curator();
         paintCurator();
         curDlg.close();
         toast(`Nice to meet you${curator.name ? `, ${curator.name.split(/\s+/)[0]}` : ""} ✦`);
@@ -1952,6 +2025,7 @@
         if (!pull()) return;
         render(false);
         if (dlg.open) checkDupe();
+        cloud?.soon(); // when synced, what the other tab changed goes up too
       }
       addEventListener("storage", (e) => {
         if (e.key === KEY || e.key === null) catchUp();
@@ -1963,6 +2037,284 @@
       // A tab that sat in the background, or came back with the Back button, catches up when it's shown again
       document.addEventListener("visibilitychange", () => document.visibilityState === "visible" && catchUp());
       addEventListener("pageshow", (e) => e.persisted && catchUp());
+
+      // ---------- Sync across devices (optional) ----------
+      // Off until you sign in with Google. Then your shelf is also kept in Firestore under your account, where the
+      // security rules let only that account read or write it, and every device signed in to it shows the same shelf.
+      // Nothing is loaded from Google before that: the SDK comes the first time it's needed. Leave apiKey empty to
+      // turn sync off (forks: use your own Firebase project).
+      const SYNC = {
+        apiKey: "",
+        authDomain: "rasa-vault-c66d6.firebaseapp.com",
+        projectId: "rasa-vault-c66d6",
+        appId: "",
+      };
+      const SYNC_SDK = "https://www.gstatic.com/firebasejs/13.2.0/";
+      const SYNC_KEY = "rasaSync"; // this browser was signed in, so sync starts again by itself next time
+      const syncReady = !!SYNC.apiKey;
+      const syncEl = $("#sync"), syncBtn = $("#syncBtn"), syncNote = $("#syncNote"), syncHead = $("#syncHead"), syncLink = $("#syncLink");
+      let fb = null, fbLoading = null, me = null, remote = null, stops = [], soonTimer = 0;
+      const sending = new Map(); // what's on its way up, so it isn't sent twice
+      const photosDown = new Set(); // photos on their way down
+
+      function loadCloud() {
+        fbLoading ||= Promise.all(["app", "auth", "firestore"].map((m) => import(`${SYNC_SDK}firebase-${m}.js`))).then(([app, auth, store]) => {
+          const a = app.initializeApp(SYNC);
+          fb = { ...auth, ...store, auth: auth.getAuth(a), db: store.getFirestore(a) };
+          auth.onAuthStateChanged(fb.auth, (u) => (u ? startSync(u) : stopSync()));
+          return fb;
+        });
+        fbLoading.catch(() => (fbLoading = null)); // offline: try again later
+        return fbLoading;
+      }
+      const ref = (...p) => fb.doc(fb.db, "shelves", me.uid, ...p.map(String));
+
+      function startSync(u) {
+        if (me?.uid === u.uid) return;
+        stopSync();
+        me = u;
+        try { localStorage.setItem(SYNC_KEY, "1"); } catch {}
+        cloud = {
+          soon() {
+            clearTimeout(soonTimer);
+            soonTimer = setTimeout(reconcile, 300);
+          },
+          curator: sendCurator,
+        };
+        stops = [
+          fb.onSnapshot(fb.collection(fb.db, "shelves", u.uid, "items"), (snap) => {
+            remote = new Map(snap.docs.map((d) => [Number(d.id), d.data()]));
+            reconcile();
+          }, syncFailed),
+          fb.onSnapshot(ref(), (s) => takeCurator(s.exists() ? s.data() : null), syncFailed),
+        ];
+        paintSync();
+        paintCurator();
+      }
+      function stopSync() {
+        stops.forEach((stop) => stop());
+        stops = [];
+        clearTimeout(soonTimer);
+        me = remote = cloud = null;
+        sending.clear();
+        paintSync();
+        paintCurator();
+      }
+      function syncFailed() {
+        stops.forEach((stop) => stop());
+        stops = [];
+        paintSync("Sync paused. It picks up again the next time you open Rasa.");
+      }
+
+      // Bring this device and the cloud level: take what's newer there, send what's newer here
+      function reconcile() {
+        if (!me || !remote) return;
+        pull();
+        const gone = readGone(), goneBefore = JSON.stringify(gone);
+        let changed = false;
+        for (const [id, r] of remote) {
+          const i = vault.findIndex((x) => x.id === id), mine = vault[i];
+          if (!(r.updated > (mine ? mine.updated : gone[id] ?? -1))) continue;
+          if (r.deleted) {
+            gone[id] = r.updated;
+            if (!mine) continue;
+            vault.splice(i, 1);
+            flipped.delete(id);
+            if (mine.photo) dropPhoto(id);
+          } else {
+            const card = clean({ ...r, id, photo: false, photoV: 0 });
+            if (!card) continue;
+            if (mine?.photo && r.photo) Object.assign(card, { photo: true, photoV: mine.photoV }); // the old photo shows until the new one arrives
+            else if (mine?.photo) dropPhoto(id);
+            if (mine) vault[i] = card;
+            else vault.push(card);
+            delete gone[id];
+          }
+          changed = true;
+        }
+        // Nothing is dropped just because the cloud doesn't have it (yet): removals only travel as notes of when
+        if (mergeDupes(gone)) changed = true;
+        if (JSON.stringify(gone) !== goneBefore) writeGone(gone);
+        if (changed) {
+          vault.sort((a, b) => a.added - b.added || a.id - b.id); // every device keeps the same order
+          save(true);
+          render(false);
+          if (dlg.open) checkDupe();
+        }
+        for (const [id, r] of remote) {
+          const x = !r.deleted && r.photo && vault.find((v) => v.id === id);
+          if (x && r.updated >= x.updated && x.photoV !== r.photoV) fetchPhoto(id, r.photoV);
+        }
+        send(gone);
+      }
+
+      // Two devices can each add the same thing before they sync. It becomes one card: the one with a photo, else the
+      // older one, which also takes the other's creator, note and rating when it has none. Every device picks the same.
+      function mergeDupes(gone) {
+        let merged = false;
+        for (let again = true; again; ) {
+          again = false;
+          pairs: for (const a of vault) {
+            for (const b of vault) {
+              if (a === b || a.category !== b.category || titleKey(a.title) !== titleKey(b.title)) continue;
+              const ca = foldText(a.creator), cb = foldText(b.creator);
+              if (ca && cb && ca !== cb) continue;
+              const [keep, drop] = a.photo !== b.photo ? (a.photo ? [a, b] : [b, a]) : a.id < b.id ? [a, b] : [b, a];
+              const [newer, older] = keep.updated >= drop.updated ? [keep, drop] : [drop, keep];
+              keep.creator ||= drop.creator;
+              keep.note = keep.note && drop.note && keep.note !== drop.note ? `${newer.note} · ${older.note}`.slice(0, 280) : keep.note || drop.note;
+              keep.rating = keep.rating && drop.rating ? newer.rating : keep.rating || drop.rating;
+              keep.added = Math.min(keep.added, drop.added);
+              keep.updated = Date.now();
+              vault.splice(vault.indexOf(drop), 1);
+              flipped.delete(drop.id);
+              if (drop.photo) dropPhoto(drop.id);
+              gone[drop.id] = Date.now();
+              merged = again = true;
+              break pairs;
+            }
+          }
+        }
+        return merged;
+      }
+
+      async function send(gone) {
+        const uid = me?.uid;
+        for (const x of vault.slice()) {
+          const r = remote?.get(x.id);
+          if ((r && !(x.updated > r.updated)) || sending.get(x.id) === x.updated) continue;
+          sending.set(x.id, x.updated);
+          try {
+            if (x.photo && r?.photoV !== x.photoV) await sendPhoto(x.id, x.photoV); // the photo goes first, so it's there when the card arrives
+            if (me?.uid !== uid) return;
+            const { id, ...card } = clean(x);
+            await fb.setDoc(ref("items", id), card);
+          } catch {
+            sending.delete(x.id); // tried again on the next change
+          }
+        }
+        for (const [key, at] of Object.entries(gone)) {
+          const id = Number(key), r = remote?.get(id);
+          if (!r || r.deleted || !(at > r.updated) || sending.get(`gone${id}`) === at || me?.uid !== uid) continue;
+          sending.set(`gone${id}`, at);
+          try {
+            await fb.setDoc(ref("items", id), { deleted: true, updated: at });
+            fb.deleteDoc(ref("photos", id)).catch(() => {});
+          } catch {
+            sending.delete(`gone${id}`);
+          }
+        }
+      }
+
+      // Photos travel as their own document, made small enough to fit Firestore's 1 MB limit
+      async function sendPhoto(id, v) {
+        let blob = await idb("readonly", (s) => s.get(id)).catch(() => null);
+        if (!blob) return;
+        for (const max of [1000, 800, 600]) if (blob.size > 900e3) blob = await shrink(blob, max);
+        await fb.setDoc(ref("photos", id), { v, data: fb.Bytes.fromUint8Array(new Uint8Array(await blob.arrayBuffer())) });
+      }
+      async function fetchPhoto(id, v, tries = 0) {
+        const key = `${id}@${v}`;
+        if (photosDown.has(key) || !me) return;
+        photosDown.add(key);
+        try {
+          const s = await fb.getDoc(ref("photos", id));
+          const d = s.exists() ? s.data() : null;
+          if (d?.v !== v) {
+            if (tries < 3) setTimeout(() => fetchPhoto(id, v, tries + 1), 2000); // the photo may still be on its way
+            return;
+          }
+          pull();
+          let x = vault.find((x) => x.id === id);
+          if (!x || (x.photo && x.photoV >= v)) return;
+          const blob = new Blob([d.data.toUint8Array()], { type: "image/jpeg" });
+          await idb("readwrite", (st) => st.put(blob, id));
+          cachePhoto(id, URL.createObjectURL(blob));
+          pull();
+          x = vault.find((x) => x.id === id);
+          if (x) {
+            x.photo = true;
+            x.photoV = v;
+            save(true);
+          }
+          announce(id);
+          render(false);
+        } catch {} finally {
+          photosDown.delete(key);
+        }
+      }
+
+      // The curator card: the newest name and username win, and the first device to sync shares its own
+      function takeCurator(d) {
+        const c = d?.curator, at = Number(c?.at) || 0;
+        if (c && at > curator.at) {
+          const user = cleanHandle(c.user);
+          curator = { name: String(c.name ?? "").trim().slice(0, 40), user: user.length >= 3 ? user : curator.user, at };
+          saveCurator(curator);
+          paintCurator();
+        } else if (!c || curator.at > at) sendCurator();
+      }
+      function sendCurator() {
+        if (!me) return;
+        const { name, user, at } = curator;
+        fb.setDoc(ref(), { curator: { name, user, at: at || 1 } }).catch(() => {});
+      }
+
+      function paintSync(msg = "") {
+        if (!syncReady) return;
+        syncEl.hidden = syncLink.hidden = false;
+        syncEl.classList.toggle("on", !!me);
+        syncHead.textContent = me ? "Synced with Google ☁" : "Your shelf on every device";
+        syncNote.textContent =
+          msg ||
+          (me
+            ? `Signed in as ${me.displayName || me.email}. What you add here shows up on your other devices within seconds.`
+            : "Sign in with Google to keep the same cards, notes and photos on your phone and your computer. Without it, everything stays in this browser.");
+        syncBtn.textContent = me ? "Sign out" : "Sign in with Google";
+        syncLink.textContent = me ? "Synced ☁" : "Sync devices ☁";
+      }
+      function syncTrouble(e) {
+        const code = String(e?.code || "");
+        if (/popup-closed|cancelled-popup/.test(code)) return "";
+        if (/popup-blocked/.test(code)) return "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.";
+        if (!navigator.onLine || /network/.test(code)) return "You seem to be offline. Try again once you're back online.";
+        if (/operation-not-supported|web-storage-unsupported/.test(code)) return "This browser can't sign in here. Open Rasa in Chrome or Safari and try again.";
+        return "Couldn't sign in just now. Please try again.";
+      }
+      if (syncReady) {
+        syncBtn.addEventListener("click", async () => {
+          syncBtn.disabled = true;
+          try {
+            const f = fb || (await loadCloud()); // usually loaded already, so the sign-in window opens straight from the tap
+            if (me) {
+              await f.signOut(f.auth);
+              try { localStorage.removeItem(SYNC_KEY); } catch {}
+              toast("Signed out. Your shelf stays on this device ✦");
+            } else {
+              await f.signInWithPopup(f.auth, new f.GoogleAuthProvider());
+              count("sync-on", true);
+              toast("Synced! Your shelf follows you now ✦");
+            }
+          } catch (e) {
+            paintSync(syncTrouble(e));
+          }
+          syncBtn.disabled = false;
+        });
+        curBtn.addEventListener("click", () => loadCloud().catch(() => {})); // get sign-in ready before it's pressed
+        // Signing in in one tab starts sync in the others
+        addEventListener("storage", (e) => e.key === SYNC_KEY && e.newValue && loadCloud().catch(() => {}));
+        syncLink.addEventListener("click", () => {
+          curBtn.click();
+          syncEl.scrollIntoView({ block: "nearest" });
+        });
+        paintSync();
+        let was = null;
+        try { was = localStorage.getItem(SYNC_KEY); } catch {}
+        if (was) {
+          loadCloud().catch(() => {});
+          addEventListener("online", () => fb || loadCloud().catch(() => {}));
+        }
+      }
 
       // ---------- Share my shelf: a picture of the shelf, sized for Stories ----------
       // Drawn on a canvas on this device. The picture only leaves it if you share or save it.
