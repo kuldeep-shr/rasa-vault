@@ -48,7 +48,7 @@ Every tab and window of the same browser shares that vault. A change made in one
 
 ## Sync across devices
 
-Sync is switched on by the Firebase web config in `SYNC` in `index.html`. While its `apiKey` is empty, as it is for now, there's no sync button and nothing changes.
+Sync is switched on by the Firebase web config in `SYNC` in `index.html`, and it's on in the live demo. With an empty `apiKey` there's no sync button and nothing changes.
 
 With the config in, sync is still off for each visitor until they press **Sign in with Google** on their curator card, or **Sync devices ☁** under the sign. Until then, the page loads nothing from Google.
 
