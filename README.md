@@ -52,7 +52,9 @@ Sync is switched on by the Firebase web config in `SYNC` in `index.html`, and it
 
 With the config in, sync is still off for each visitor until they press **Sign in with Google** on their curator card, or **Sync devices ☁** under the sign. Until then, the page loads nothing from Google.
 
-Once signed in, the shelf is also kept in Cloud Firestore (in Mumbai, `asia-south1`) under that Google account, and every device signed in to the same account shows the same shelf. The browser keeps its own copy too, so Rasa still works offline and catches up when it's back. Signing out keeps the shelf on that device and stops syncing it.
+Once signed in, the shelf is also kept in Cloud Firestore (in Mumbai, `asia-south1`) under that Google account, and every device signed in to the same account shows the same shelf. A device signed in to a different Google account has a shelf of its own, so the sync box shows which account each device uses. The browser keeps its own copy too, so Rasa still works offline and catches up when it's back. Signing out keeps the shelf on that device and stops syncing it.
+
+Google doesn't allow signing in inside an app's own browser, such as the one LinkedIn or Instagram opens links in. There, the sync box offers to copy the link instead, so it can be opened in Safari or Chrome.
 
 | What | Where in Firestore |
 | --- | --- |

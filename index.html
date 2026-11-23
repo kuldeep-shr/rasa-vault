@@ -2265,17 +2265,29 @@
         fb.setDoc(ref(), { curator: { name, user, at: at || 1 } }).catch(() => {});
       }
 
+      // Google doesn't let anyone sign in inside an app's own browser (LinkedIn, Instagram, Facebook and so on)
+      const inApp = (() => {
+        const ua = navigator.userAgent;
+        return (
+          /FBAN|FBAV|FB_IAB|Instagram|LinkedInApp|Snapchat|musical_ly|BytedanceWebview|Line\/|MicroMessenger/i.test(ua) ||
+          (/Android/.test(ua) && /; wv\)/.test(ua)) || // Android app web views
+          (/iPhone|iPad|iPod/.test(ua) && !/Safari\//.test(ua)) // iPhone app web views
+        );
+      })();
       function paintSync(msg = "") {
         if (!syncReady) return;
         syncEl.hidden = syncLink.hidden = false;
         syncEl.classList.toggle("on", !!me);
         syncHead.textContent = me ? "Synced with Google ☁" : "Your shelf on every device";
+        // Which account matters: a device signed in to a different Google account has a shelf of its own
         syncNote.textContent =
           msg ||
           (me
-            ? `Signed in as ${me.displayName || me.email}. What you add here shows up on your other devices within seconds.`
-            : "Sign in with Google to keep the same cards, notes and photos on your phone and your computer. Without it, everything stays in this browser.");
-        syncBtn.textContent = me ? "Sign out" : "Sign in with Google";
+            ? `Signed in as ${me.email || me.displayName}. Sign in with this same account on your other devices, and they'll all show this shelf.`
+            : inApp
+              ? "Google doesn't allow signing in inside this app. To sync, open Rasa in Safari or Chrome: copy the link, or look for Open in browser in the app's menu."
+              : "Sign in with Google to keep the same cards, notes and photos on your phone and your computer. Use the same Google account on each one. Without it, everything stays in this browser.");
+        syncBtn.textContent = me ? "Sign out" : inApp ? "Copy link" : "Sign in with Google";
         syncLink.textContent = me ? "Synced ☁" : "Sync devices ☁";
       }
       function syncTrouble(e) {
@@ -2283,11 +2295,22 @@
         if (/popup-closed|cancelled-popup/.test(code)) return "";
         if (/popup-blocked/.test(code)) return "Your browser blocked the sign-in window. Allow pop-ups for this site, then try again.";
         if (!navigator.onLine || /network/.test(code)) return "You seem to be offline. Try again once you're back online.";
-        if (/operation-not-supported|web-storage-unsupported/.test(code)) return "This browser can't sign in here. Open Rasa in Chrome or Safari and try again.";
+        if (/operation-not-supported|web-storage-unsupported/.test(code))
+          return "This browser is blocking what Google sign-in needs, usually third-party cookies. Allow them for this site, or open Rasa in another browser.";
         return "Couldn't sign in just now. Please try again.";
       }
       if (syncReady) {
         syncBtn.addEventListener("click", async () => {
+          if (inApp && !me) {
+            const link = location.origin + location.pathname;
+            try {
+              await navigator.clipboard.writeText(link);
+              toast("Link copied. Paste it into Safari or Chrome ✦");
+            } catch {
+              paintSync(`Open this link in Safari or Chrome to sync: ${link}`);
+            }
+            return;
+          }
           syncBtn.disabled = true;
           try {
             const f = fb || (await loadCloud()); // usually loaded already, so the sign-in window opens straight from the tap
@@ -2298,14 +2321,14 @@
             } else {
               await f.signInWithPopup(f.auth, new f.GoogleAuthProvider());
               count("sync-on", true);
-              toast("Synced! Your shelf follows you now ✦");
+              toast("Synced! Sign in with this account on your other devices too ✦");
             }
           } catch (e) {
             paintSync(syncTrouble(e));
           }
           syncBtn.disabled = false;
         });
-        curBtn.addEventListener("click", () => loadCloud().catch(() => {})); // get sign-in ready before it's pressed
+        curBtn.addEventListener("click", () => inApp || loadCloud().catch(() => {})); // get sign-in ready before it's pressed
         // Signing in in one tab starts sync in the others
         addEventListener("storage", (e) => e.key === SYNC_KEY && e.newValue && loadCloud().catch(() => {}));
         syncLink.addEventListener("click", () => {
