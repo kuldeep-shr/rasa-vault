@@ -63,6 +63,7 @@ Once signed in, the shelf is also kept in Cloud Firestore (in Mumbai, `asia-sout
 How devices agree:
 
 - **The newest change wins, card by card.** A rating changed on one device and a note changed on another both survive, and every tab and device stays in step without writing back and forth.
+- **A device that was offline doesn't overwrite newer changes.** It waits for the cloud's copy before sending anything, then sends only what's newer on that device.
 - **Deleting a card deletes it everywhere.** A deleted card leaves a small note of when it went, so a device that still has the old copy doesn't bring it back. Undo brings it back everywhere.
 - **One card per thing, across devices too.** If two devices each added the same thing before they synced, the two cards become one: the one with a photo, otherwise the older one. It also takes the other's creator, rating and note when it has none, and keeps both notes if they differ.
 - **Example cards** that nobody has touched never override a real change, and an example card removed on any device is removed everywhere.

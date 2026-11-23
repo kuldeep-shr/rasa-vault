@@ -2053,7 +2053,7 @@
       const SYNC_KEY = "rasaSync"; // this browser was signed in, so sync starts again by itself next time
       const syncReady = !!SYNC.apiKey;
       const syncEl = $("#sync"), syncBtn = $("#syncBtn"), syncNote = $("#syncNote"), syncHead = $("#syncHead"), syncLink = $("#syncLink");
-      let fb = null, fbLoading = null, me = null, remote = null, stops = [], soonTimer = 0;
+      let fb = null, fbLoading = null, me = null, remote = null, fresh = false, stops = [], soonTimer = 0; // fresh: remote came from the server
       const sending = new Map(); // what's on its way up, so it isn't sent twice
       const photosDown = new Set(); // photos on their way down
 
@@ -2082,11 +2082,14 @@
           curator: sendCurator,
         };
         stops = [
-          fb.onSnapshot(fb.collection(fb.db, "shelves", u.uid, "items"), (snap) => {
+          // A device that opens Rasa offline first sees only what it has cached, which can be nothing at all. It waits
+          // for the server's copy before sending anything, so it can't overwrite newer changes made on other devices.
+          fb.onSnapshot(fb.collection(fb.db, "shelves", u.uid, "items"), { includeMetadataChanges: true }, (snap) => {
             remote = new Map(snap.docs.map((d) => [Number(d.id), d.data()]));
+            fresh = !snap.metadata.fromCache;
             reconcile();
           }, syncFailed),
-          fb.onSnapshot(ref(), (s) => takeCurator(s.exists() ? s.data() : null), syncFailed),
+          fb.onSnapshot(ref(), { includeMetadataChanges: true }, (s) => s.metadata.fromCache || takeCurator(s.exists() ? s.data() : null), syncFailed),
         ];
         paintSync();
         paintCurator();
@@ -2096,6 +2099,7 @@
         stops = [];
         clearTimeout(soonTimer);
         me = remote = cloud = null;
+        fresh = false;
         sending.clear();
         paintSync();
         paintCurator();
@@ -2141,6 +2145,7 @@
           render(false);
           if (dlg.open) checkDupe();
         }
+        if (!fresh) return; // offline: what's newer here goes up once the server's copy arrives
         for (const [id, r] of remote) {
           const x = !r.deleted && r.photo && vault.find((v) => v.id === id);
           if (x && r.updated >= x.updated && x.photoV !== r.photoV) fetchPhoto(id, r.photoV);
