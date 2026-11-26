@@ -116,6 +116,8 @@ To see which platform brings visitors, tag your links, for example `https://kuld
 
 Counting is off while `STATS.code` in `index.html` is empty, and it only runs on `STATS.host`. A fork counts nothing until you put in your own GoatCounter code and host.
 
+To keep your own visits out of the numbers, open `https://kuldeep-shr.github.io/rasa-vault/#me` once in each browser you use, including the in-app browsers of Instagram, LinkedIn and the like, which keep their own storage. That browser then sends nothing at all, whichever link or network brought it, and Rasu confirms with "I won't count this browser ✓". Open `#me-off` to be counted again. It's only a flag in that browser's local storage, so clearing the site's data or using a private window brings counting back.
+
 ### Counters on the page
 
 The feedback section shows two numbers, read from GoatCounter's public visitor counter when the section scrolls near:

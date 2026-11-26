@@ -2053,11 +2053,31 @@
       const STATS = { code: "lupin", host: "kuldeep-shr.github.io" };
       const onSite = !!STATS.code && location.hostname === STATS.host && window.top === window;
       const counting = onSite && navigator.doNotTrack !== "1" && !navigator.globalPrivacyControl;
+      // The owner's own browsers: opening the site once with #me stops this browser being counted at all, whatever link,
+      // network or device brought it, until #me-off. It's only a flag in this browser, nothing about who you are.
+      const ME_KEY = "rasaNotCounted";
+      let notCounted = false;
+      try { notCounted = localStorage.getItem(ME_KEY) === "1"; } catch {}
+      function meSwitch() {
+        const on = { "#me": true, "#me-off": false }[location.hash];
+        if (on === undefined) return "";
+        notCounted = on;
+        let kept = true;
+        try { on ? localStorage.setItem(ME_KEY, "1") : localStorage.removeItem(ME_KEY); } catch { kept = false; }
+        history.replaceState(null, "", location.pathname + location.search);
+        if (!on) return "Okay, I'll count this browser again.";
+        return kept ? "Got it. I won't count this browser ✓" : "I can't remember this browser, so only this visit isn't counted.";
+      }
+      const meMsg = meSwitch(); // before the visit below, so it isn't counted either
+      addEventListener("hashchange", () => {
+        const msg = meSwitch();
+        if (msg) toast(msg);
+      });
       const hits = []; // GoatCounter drops more than 4 hits a second from one visitor, so they go out 400ms apart
       let hitTimer = 0;
       // chosen: the visitor pressed a button to send this, so Do Not Track doesn't hold it back
       function count(path, event = false, chosen = false) {
-        if (!(chosen ? onSite : counting)) return;
+        if (notCounted || !(chosen ? onSite : counting)) return;
         const p = new URLSearchParams({ p: path, e: event });
         if (!event) {
           p.set("t", document.title);
@@ -2117,7 +2137,7 @@
         if (out.user !== c?.user) saveCurator(out); // a new username is kept, so it stays the same next time
         if (!c) {
           count("joined", true); // the first visit from this browser
-          joinedNow = counting;
+          joinedNow = counting && !notCounted;
           newHere = true;
         }
         return out;
@@ -3442,7 +3462,7 @@
         if (on.join() === fbSent?.on.join()) return toast("Rasu already has that one ✦");
         on.forEach((k) => count(`feedback-${k}`, true, true));
         count("feedback-sent", true, true);
-        if (!fbSent && onSite) addMine("fb"); // the first feedback from this browser
+        if (!fbSent && onSite && !notCounted) addMine("fb"); // the first feedback from this browser
         fbSent = { on, at: Date.now() };
         try { localStorage.setItem(FB_KEY, JSON.stringify(fbSent)); } catch {}
         burst(r.left + r.width / 2, r.top + r.height / 2, 36);
@@ -3650,7 +3670,7 @@
       document.fonts.ready.then(fadeFilters); // the web font changes the shelves' widths
       wake();
       const hour = new Date().getHours();
-      setTimeout(() => toast(hour < 5 ? "Up late? Me too." : hour < 12 ? "Good morning! ☀" : hour < 17 ? "Good afternoon!" : "Good evening ✦"), 1300);
+      setTimeout(() => toast(meMsg || (hour < 5 ? "Up late? Me too." : hour < 12 ? "Good morning! ☀" : hour < 17 ? "Good afternoon!" : "Good evening ✦")), 1300);
     </script>
   </body>
 </html>
