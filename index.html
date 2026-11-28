@@ -596,12 +596,17 @@
       .rasa-row:has([aria-pressed="true"]) button:not([aria-pressed="true"]) { opacity: 0.45; }
       .rasa-row button[aria-pressed="true"] { opacity: 1; transform: translate(-2px, -2px) scale(1.1); box-shadow: 3px 3px 0 var(--ink); }
       @media (hover: hover) { .rasa-row button:hover { opacity: 1; transform: translate(-1px, -1px) scale(1.08); } }
-      .rasa-pick { display: grid; gap: 8px; }
+      /* An aftertaste can't be the card's own rasa, so that one fades right out */
+      .rasa-row button:disabled, .rasa-row:has([aria-pressed="true"]) button:disabled { opacity: 0.15; transform: none; box-shadow: none; cursor: not-allowed; }
+      .rasa-pick, .rasa-after { display: grid; gap: 8px; }
+      .rasa-after { margin-top: 4px; }
       .rasa-q { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
       .rasa-q small { display: inline-block; margin-left: 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: none; opacity: 0.75; }
       /* On a card's back, above the note */
       .rasa-tag { padding: 3px 10px; background: var(--r); border: 2px solid var(--ink); border-radius: 99px; font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
       .rasa-tag.dark { color: #fff; }
+      .rasa-tags { display: grid; justify-items: center; gap: 6px; }
+      .rasa-tag.after { border-style: dashed; font-size: 11px; }
       .rasa-dlg { --c: var(--purple); width: min(460px, 100% - 2 * var(--edge)); }
       .rasa-intro { font-size: 14px; font-weight: 500; line-height: 1.45; }
       .rasa-list { display: grid; gap: 12px; padding: 0; list-style: none; }
@@ -993,6 +998,11 @@
           <div class="rasa-pick">
             <p class="rasa-q" id="fRasaQ">What did it leave you with? <small id="fRasaSay">Optional</small></p>
             <div class="rasa-row" id="fRasa" role="group" aria-labelledby="fRasaQ"></div>
+            <!-- A second feeling it left behind: you laughed, then it left you tender. Shown once a rasa is picked. -->
+            <div class="rasa-after" id="fAfterBox" hidden>
+              <p class="rasa-q" id="fAfterQ">And an aftertaste? <small id="fAfterSay">Optional</small></p>
+              <div class="rasa-row" id="fAfter" role="group" aria-labelledby="fAfterQ"></div>
+            </div>
           </div>
           <details class="more" id="more">
             <summary>Rating &amp; note</summary>
@@ -1112,7 +1122,9 @@
         shanta: { name: "Shanta", deva: "शान्त", en: "peace", gloss: "peace & calm", sym: "🕊️", color: "#bfe3ff", line: "You keep what makes the noise go quiet." },
       };
       const rasaSays = (k) => (RASAS[k] ? `${RASAS[k].sym} ${RASAS[k].name} · ${RASAS[k].en}` : "");
-      const rasaWords = (x) => (RASAS[x.rasa] ? `${RASAS[x.rasa].name} ${RASAS[x.rasa].gloss}` : "");
+      // A card's rasa with its aftertaste, if it has one: "😂 Hasya · laughter + 💧 Karuna aftertaste"
+      const feltSays = (x) => (RASAS[x.after] ? `${rasaSays(x.rasa)} + ${RASAS[x.after].sym} ${RASAS[x.after].name} aftertaste` : rasaSays(x.rasa));
+      const rasaWords = (x) => [x.rasa, x.after].map((k) => (RASAS[k] ? `${RASAS[k].name} ${RASAS[k].gloss}` : "")).join(" ");
       const rasaChips = (sel) =>
         Object.entries(RASAS)
           .map(([k, r]) => `<button type="button" data-rasa="${k}" style="--r:${r.color}" aria-pressed="${k === sel}" aria-label="${r.name}, ${r.en}" title="${r.name} · ${r.en}">${r.sym}</button>`)
@@ -1150,9 +1162,9 @@
       const grid = $("#grid"), q = $("#q"), filtersEl = $("#filters"), statsTxt = $("#statsTxt"), sign = $("#sign");
       const addBtn = $("#addBtn"), surpriseBtn = $("#surprise"), toastEl = $("#toast"), fx = $("#fx");
       const dlg = $("#dlg"), form = $("#form"), fStars = $("#fStars"), fTitle = $("#fTitle"), fCreator = $("#fCreator"), fNote = $("#fNote");
-      const fRasa = $("#fRasa"), fRasaSay = $("#fRasaSay");
+      const fRasa = $("#fRasa"), fRasaSay = $("#fRasaSay"), fAfter = $("#fAfter"), fAfterSay = $("#fAfterSay"), fAfterBox = $("#fAfterBox");
 
-      let filter = "all", editingId = null, editFrom = null, formRating = 0, formRasa = "", toastTimer, spotTimer, lastPick;
+      let filter = "all", editingId = null, editFrom = null, formRating = 0, formRasa = "", formAfter = "", toastTimer, spotTimer, lastPick;
       const flipped = new Set();
 
       // ---------- Storage ----------
@@ -1161,6 +1173,7 @@
         // Older saves have no rating/note: borrow them from the matching seed item
         const seed = SEED.find((s) => s.id === x.id && s.title === x.title) || {};
         const rating = Math.round(Number(x.rating ?? seed.rating) || 0);
+        const rasa = Object.hasOwn(RASAS, x.rasa) ? x.rasa : "";
         return {
           id: Number.isFinite(x.id) ? x.id : 0,
           category: x.category,
@@ -1168,7 +1181,8 @@
           creator: String(x.creator ?? "").slice(0, 80),
           rating: Math.min(5, Math.max(0, rating)),
           note: String(x.note ?? seed.note ?? "").slice(0, 280),
-          rasa: Object.hasOwn(RASAS, x.rasa) ? x.rasa : "", // the feeling it left you with, or none yet
+          rasa, // the feeling it left you with, or none yet
+          after: rasa && x.after !== rasa && Object.hasOwn(RASAS, x.after) ? x.after : "", // its aftertaste: a second feeling, only beside a rasa
           added: Number(x.added) || 0,
           photo: x.photo === true,
           photoV: x.photo === true ? Number(x.photoV) || 1 : 0, // which photo it is, so a newer one replaces it on other devices
@@ -1221,11 +1235,11 @@
       // What a card says, tidied first: a card that only gained default fields hasn't changed
       const sig = (x) => {
         const c = clean(x) || x;
-        return JSON.stringify([c.category, c.title, c.creator, c.rating, c.note, c.rasa, c.photo, c.photoV]);
+        return JSON.stringify([c.category, c.title, c.creator, c.rating, c.note, c.rasa, c.after, c.photo, c.photoV]);
       };
       const pristine = (x) => {
         const s = SEED.find((s) => s.id === x.id);
-        return !!s && !x.photo && !x.rasa && x.category === s.category && x.title === s.title && x.creator === s.creator && x.rating === s.rating && x.note === s.note;
+        return !!s && !x.photo && !x.rasa && !x.after && x.category === s.category && x.title === s.title && x.creator === s.creator && x.rating === s.rating && x.note === s.note;
       };
       function stamp() {
         let before = [];
@@ -1285,6 +1299,7 @@
         .map((v) => `<button type="button" data-v="${v}" aria-label="${v} star${v > 1 ? "s" : ""}">★</button>`)
         .join("");
       fRasa.innerHTML = rasaChips("");
+      fAfter.innerHTML = rasaChips("");
 
       // ---------- Rendering ----------
       // A card's rasa counts too, so searching "karuna" or "wonder" finds what left you that way
@@ -1320,7 +1335,7 @@
       }
 
       function cardHTML(x, i, animate) {
-        const c = CATS[x.category], rz = RASAS[x.rasa];
+        const c = CATS[x.category], rz = RASAS[x.rasa], after = rz && RASAS[x.after];
         const t = esc(x.title), by = esc(x.creator);
         const isFlipped = flipped.has(x.id);
         const preset = x.photo ? "" : seedCover(x);
@@ -1349,7 +1364,10 @@
               <div class="face back"${isFlipped ? "" : " inert"}>
                 <div class="bar"><span>Notes</span><button class="x" type="button" data-act="flip" aria-label="Flip back">↺</button></div>
                 <div class="body">
-                  ${rz ? `<p class="rasa-tag${rz.dark ? " dark" : ""}" style="--r:${rz.color}"><span class="sr">Rasa: </span><span aria-hidden="true">${rz.sym}</span> ${rz.name} · ${rz.en}</p>` : ""}
+                  ${rz ? `<div class="rasa-tags">
+                    <p class="rasa-tag${rz.dark ? " dark" : ""}" style="--r:${rz.color}"><span class="sr">Rasa: </span><span aria-hidden="true">${rz.sym}</span> ${rz.name} · ${rz.en}</p>
+                    ${after ? `<p class="rasa-tag after${after.dark ? " dark" : ""}" style="--r:${after.color}" title="${after.name} · ${after.en}"><span class="sr">Aftertaste: </span><span aria-hidden="true">${after.sym}</span> ${after.name} aftertaste</p>` : ""}
+                  </div>` : ""}
                   <p class="note">${x.note ? esc(x.note) : "<em>No note yet. What made it stick?</em>"}</p>
                   <div class="rate" role="group" aria-label="Rating">${stars}</div>
                   <div class="acts"><button class="btn sm" type="button" data-act="edit">Edit</button>${img || !AUTO_PHOTOS ? "" : '<button class="btn sm" type="button" data-act="auto">Find photo ✦</button>'}</div>
@@ -1547,6 +1565,7 @@
         formRating = it?.rating ?? 0;
         paintStars();
         formRasa = it?.rasa ?? "";
+        formAfter = it?.after ?? "";
         paintFormRasa();
         formPhoto = null;
         formCleared = false;
@@ -1574,6 +1593,7 @@
           note: fNote.value.trim(),
           rating: formRating,
           rasa: formRasa,
+          after: formAfter,
         };
         // Storing a photo takes a moment, so the vault itself changes after it, all at once, from the latest copy
         const id = vault.some((x) => x.id === editingId) ? editingId : Math.max(Date.now(), ...vault.map((x) => x.id + 1));
@@ -1635,15 +1655,29 @@
         formRating = formRating === v ? 0 : v;
         paintStars();
       });
-      // The card's rasa: tap one to pick it, tap it again to clear it
+      // The card's rasa: tap one to pick it, tap it again to clear it. Once it has one, an aftertaste can follow:
+      // a second feeling it left behind, never the same one, and gone again with the rasa.
       function paintFormRasa() {
+        if (!formRasa || formAfter === formRasa) formAfter = "";
         fRasa.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.rasa === formRasa));
         fRasaSay.textContent = formRasa ? rasaSays(formRasa) : "Optional";
+        fAfterBox.hidden = !formRasa;
+        fAfter.querySelectorAll("button").forEach((b) => {
+          b.disabled = b.dataset.rasa === formRasa;
+          b.setAttribute("aria-pressed", b.dataset.rasa === formAfter);
+        });
+        fAfterSay.textContent = formAfter ? rasaSays(formAfter) : "Optional";
       }
       fRasa.addEventListener("click", (e) => {
         const b = e.target.closest("[data-rasa]");
         if (!b) return;
         formRasa = formRasa === b.dataset.rasa ? "" : b.dataset.rasa;
+        paintFormRasa();
+      });
+      fAfter.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-rasa]");
+        if (!b || b.disabled) return;
+        formAfter = formAfter === b.dataset.rasa ? "" : b.dataset.rasa;
         paintFormRasa();
       });
       $("#dlgClose").addEventListener("click", () => dlg.close());
@@ -2339,7 +2373,9 @@
               keep.creator ||= drop.creator;
               keep.note = keep.note && drop.note && keep.note !== drop.note ? `${newer.note} · ${older.note}`.slice(0, 280) : keep.note || drop.note;
               keep.rating = keep.rating && drop.rating ? newer.rating : keep.rating || drop.rating;
-              keep.rasa = keep.rasa && drop.rasa ? newer.rasa : keep.rasa || drop.rasa;
+              const felt = keep.rasa && drop.rasa ? newer : keep.rasa ? keep : drop; // the rasa that stays brings its aftertaste
+              keep.rasa = felt.rasa;
+              keep.after = felt.after || "";
               keep.added = Math.min(keep.added, drop.added);
               keep.updated = Date.now();
               vault.splice(vault.indexOf(drop), 1);
@@ -3036,7 +3072,7 @@
                 (x) => `<li class="rasa-item" data-id="${x.id}" style="--c:${CATS[x.category].color}">
                   <p class="rasa-name"><span class="rasa-cat">${CATS[x.category].one}</span><b>${esc(x.title)}</b>${x.creator ? `<small>by ${esc(x.creator)}</small>` : ""}</p>
                   <div class="rasa-row" role="group" aria-label="What ${esc(x.title)} left you with">${rasaChips(x.rasa)}</div>
-                  <p class="rasa-say">${x.rasa ? rasaSays(x.rasa) : "Not tagged yet"}</p>
+                  <p class="rasa-say">${x.rasa ? feltSays(x) : "Not tagged yet"}</p>
                 </li>`
               )
               .join("")
@@ -3059,10 +3095,11 @@
         const it = vault.find((x) => x.id === id);
         if (!it) return row.remove(); // removed in another tab
         it.rasa = it.rasa === b.dataset.rasa ? "" : b.dataset.rasa;
+        if (!it.rasa || it.after === it.rasa) it.after = ""; // an aftertaste only follows a different rasa
         save();
         render(false);
         row.querySelectorAll("[data-rasa]").forEach((x) => x.setAttribute("aria-pressed", x.dataset.rasa === it.rasa));
-        row.querySelector(".rasa-say").textContent = it.rasa ? rasaSays(it.rasa) : "Not tagged yet";
+        row.querySelector(".rasa-say").textContent = it.rasa ? feltSays(it) : "Not tagged yet";
         paintRasaCount();
       });
 
