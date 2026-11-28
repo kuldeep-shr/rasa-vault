@@ -623,6 +623,104 @@
       .rasa-acts { display: grid; grid-template-columns: auto 1fr; gap: 10px; }
       .rasa-acts .btn { padding: 13px 14px; }
 
+      /* ---------- A postcard from your museum: leave an email and Rasu writes now and then ---------- */
+      /* It arrives picture side up, with your own cards on a gallery wall, then turns over to the address side */
+      .post-dlg {
+        --hand: "Bradley Hand", "Segoe Print", "Ink Free", "Noteworthy", cursive;
+        width: min(580px, 100% - 2 * var(--edge)); padding: 16px 16px 16px 6px; perspective: 1600px;
+        background: none; border: 0; border-radius: 0; box-shadow: none;
+      }
+      .post-dlg::backdrop { transition: opacity 0.6s; }
+      .post-dlg.gone::backdrop { opacity: 0; }
+      .post-x { position: absolute; top: 2px; right: 2px; z-index: 2; box-shadow: 2px 2px 0 var(--ink); }
+      .post-inner { display: grid; transform-style: preserve-3d; transition: transform 0.9s var(--spring); }
+      .post-dlg.turned .post-inner { transform: rotateY(180deg); }
+      .post-dlg.gone .post-inner { animation: post-away 0.8s cubic-bezier(0.5, -0.35, 0.75, 0.3) forwards; }
+      @keyframes post-away { to { transform: rotateY(180deg) translateY(-115vh) rotate(-12deg) scale(0.55); } }
+      .post-face {
+        position: relative; grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden;
+        background: var(--paper); border: 3px solid var(--ink); border-radius: 10px; box-shadow: 10px 10px 0 var(--ink);
+      }
+      .post-front {
+        display: grid; grid-template-rows: auto auto 1fr auto auto; justify-items: center; align-items: center; gap: 8px; padding: 16px 16px 14px;
+        overflow: hidden; background: radial-gradient(ellipse 75% 60% at 50% 0%, rgba(255, 240, 190, 0.55), transparent 70%), var(--mint); cursor: var(--cur-hot);
+      }
+      .post-hi { padding: 2px 12px; background: var(--paper); border: 2px solid var(--ink); border-radius: 99px; font-size: 11px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; }
+      .post-place {
+        max-width: 100%; color: var(--yellow); font-size: clamp(22px, 6.5vw, 34px); font-weight: 700; line-height: 1.05; text-align: center; text-transform: uppercase;
+        overflow-wrap: anywhere; -webkit-text-stroke: 1.5px var(--ink); paint-order: stroke fill; text-shadow: 3px 3px 0 var(--ink);
+      }
+      .post-wall { align-self: end; display: flex; align-items: center; justify-content: center; gap: clamp(10px, 3vw, 20px); width: 100%; }
+      /* A velvet rope on brass posts in front of the frames */
+      .post-rope { position: relative; width: 76%; height: 18px; border: 5px solid #c62e2e; border-top: 0; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+      .post-rope::before, .post-rope::after {
+        content: ""; position: absolute; top: -10px; width: 10px; height: 36px; background: #e9b949; border: 2px solid var(--ink); border-radius: 6px 6px 2px 2px;
+      }
+      .post-rope::before { left: -13px; }
+      .post-rope::after { right: -13px; }
+      .post-frame { display: grid; justify-items: center; gap: 6px; width: min(29%, 116px); }
+      .post-frame:nth-child(2) { translate: 0 -10px; }
+      .post-frame::before { content: ""; width: 44%; height: 6px; background: var(--ink); border-radius: 0 0 8px 8px; } /* the picture light */
+      .post-art { display: block; width: 100%; aspect-ratio: 3 / 4; padding: 5px; background: #e9b949; border: 3px solid var(--ink); box-shadow: 4px 4px 0 var(--ink); }
+      .post-art img, .post-gen { display: grid; place-items: center; width: 100%; height: 100%; background: var(--paper); border: 2px solid var(--ink); object-fit: cover; }
+      .post-gen { background: linear-gradient(160deg, hsl(calc(var(--h) * 1deg) 85% 66%), hsl(calc((var(--h) + 60) * 1deg) 75% 50%)); font-size: 26px; font-weight: 700; }
+      .post-gen svg { width: 48%; height: auto; }
+      .reserved .post-gen { background: var(--paper); border-style: dashed; color: #888; }
+      .post-frame figcaption {
+        max-width: 100%; padding: 1px 6px; overflow: hidden; background: var(--paper); border: 2px solid var(--ink);
+        font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap;
+      }
+      .post-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; }
+      .post-cap { font-size: 11px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
+      .post-back {
+        display: grid; grid-template-columns: 1fr 1fr; grid-template-areas: "msg corner" "msg addr" "fine fine";
+        gap: 12px 24px; padding: 16px 18px 14px; transform: rotateY(180deg);
+      }
+      .post-back::before { content: ""; position: absolute; top: 16px; bottom: 52px; left: 50%; border-left: 2px solid rgba(17, 17, 17, 0.22); } /* the line down the middle */
+      .post-msg { grid-area: msg; display: grid; align-content: start; gap: 10px; font-family: var(--hand); font-size: 17px; line-height: 1.45; white-space: pre-line; }
+      .post-sign { justify-self: end; font-size: 20px; }
+      .post-corner { grid-area: corner; position: relative; display: flex; justify-content: flex-end; min-height: 86px; }
+      /* Paper-coloured dots along the edge read as the stamp's perforations */
+      .post-stamp {
+        --r: var(--yellow); display: grid; place-items: center; align-content: center; gap: 3px; width: 68px; height: 80px;
+        background: var(--r); border: 5px dotted var(--paper); outline: 2px solid var(--ink); outline-offset: -6px; rotate: 4deg; font-size: 28px; line-height: 1;
+      }
+      .post-stamp small { font-size: 8px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+      .post-stamp.dark { color: #fff; }
+      /* The postmark lands on the stamp only once it's posted */
+      .post-mark {
+        position: absolute; top: 16px; right: 44px; display: grid; place-items: center; width: 78px; height: 78px; padding: 6px;
+        color: rgba(17, 17, 17, 0.78); border: 2.5px solid currentColor; border-radius: 50%; font-size: 8px; font-weight: 700; letter-spacing: 0.1em;
+        line-height: 1.35; text-align: center; text-transform: uppercase; opacity: 0; transform: scale(1.9) rotate(-34deg); pointer-events: none;
+      }
+      .post-dlg.posted .post-mark { animation: postmark 0.32s cubic-bezier(0.2, 1.5, 0.4, 1) forwards; }
+      @keyframes postmark { to { opacity: 1; transform: scale(1) rotate(-14deg); } }
+      .post-addr { grid-area: addr; display: grid; align-content: start; gap: 10px; }
+      .post-line {
+        display: flex; align-items: baseline; gap: 10px; min-height: 32px; padding-bottom: 2px; border-bottom: 2px solid var(--ink);
+        font-family: var(--hand); font-size: 17px; overflow-wrap: anywhere;
+      }
+      .post-line b { font-family: "Space Grotesk", system-ui, sans-serif; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+      .post-line input { flex: 1; min-width: 0; padding: 4px 0 2px; color: var(--ink); background: none; border: 0; outline: 0; font-family: var(--hand); font-size: 18px; }
+      .post-line:focus-within { border-bottom-color: var(--orange); box-shadow: 0 3px 0 var(--yellow); }
+      .post-acts { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+      .post-acts .btn { flex: 1; }
+      .post-later {
+        padding: 8px 4px; background: none; border: 0; font-family: inherit; font-size: 13px; font-weight: 700;
+        text-decoration: underline; text-underline-offset: 3px; cursor: var(--cur-hot);
+      }
+      .post-say { color: #c4271b; font-size: 13px; font-weight: 700; } /* on the card: a toast would sit behind the open window */
+      .post-say:empty { display: none; }
+      .post-fine { grid-area: fine; color: #555; font-size: 11px; font-weight: 600; line-height: 1.45; text-align: center; }
+      @media (max-width: 520px) {
+        .post-back { grid-template-columns: 1fr; grid-template-areas: "corner" "msg" "addr" "fine"; }
+        .post-back::before { display: none; }
+        .post-corner { min-height: 80px; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .post-inner { transition: none; }
+      }
+
       /* ---------- Feedback: switches instead of a form ---------- */
       .fb { margin-top: 80px; scroll-margin-top: 24px; }
       .fb-in {
@@ -1080,6 +1178,48 @@
       </div>
     </dialog>
 
+    <!-- A postcard from your museum: Rasu asks for an email once, then now and then, and never again once it's posted -->
+    <dialog id="postDlg" class="post-dlg" aria-labelledby="postTitle" aria-describedby="postFine">
+      <h2 class="sr" id="postTitle">A postcard from Rasu</h2>
+      <button class="x post-x" id="postClose" type="button" aria-label="Close">✕</button>
+      <form class="post-inner" id="postForm" novalidate>
+        <div class="post-face post-front" id="postFront">
+          <p class="post-hi">Greetings from</p>
+          <p class="post-place" id="postPlace"></p>
+          <div class="post-wall" id="postWall"></div>
+          <span class="post-rope" aria-hidden="true"></span>
+          <div class="post-foot">
+            <p class="post-cap" id="postCap"></p>
+            <button class="btn sm" id="postTurn" type="button">Turn over ↺</button>
+          </div>
+        </div>
+        <div class="post-face post-back" id="postBack" inert>
+          <div class="post-msg">
+            <p id="postHand"></p>
+            <p class="post-sign">Rasu ✦</p>
+          </div>
+          <div class="post-corner" aria-hidden="true">
+            <span class="post-mark" id="postMark"></span>
+            <span class="post-stamp" id="postStamp"></span>
+          </div>
+          <div class="post-addr">
+            <label class="post-line"
+              ><b>To</b><span class="sr">Your email</span
+              ><input id="postEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" maxlength="254" placeholder="you@example.com" required
+            /></label>
+            <p class="post-line" id="postWho"></p>
+            <p class="post-line">The pocket museum</p>
+            <div class="post-acts">
+              <button class="btn yellow" id="postSend" type="submit">Post it 📮</button>
+              <button class="post-later" id="postLater" type="button">Not now</button>
+            </div>
+            <p class="post-say" id="postSay" role="status" aria-live="polite"></p>
+          </div>
+          <p class="post-fine" id="postFine">At most one letter a month. Only Kuldeep, who makes Rasa, sees your address. Reply “stop” to any letter and they stop.</p>
+        </div>
+      </form>
+    </dialog>
+
     <!-- The tour: a few short steps, each lighting up one part of Rasa -->
     <dialog id="tour" class="tour" aria-labelledby="tourTitle" aria-describedby="tourText">
       <div class="tour-spot none" id="tourSpot" aria-hidden="true"></div>
@@ -1329,8 +1469,9 @@
       }
 
       // A poster made from the title (color picked from the title), shown until a real photo is added
+      const titleHue = (title) => [...title].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 17);
       function genArt(x, t, by) {
-        const hue = [...x.title].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 17);
+        const hue = titleHue(x.title);
         return `<span class="art gen" style="--h:${hue}">${ICONS[x.category]}<b>${t}</b>${by ? `<small>${by}</small>` : ""}</span>`;
       }
 
@@ -1645,6 +1786,7 @@
         const card = grid.querySelector(`[data-id="${id}"]`);
         if (card) setTimeout(() => spotlight(card, "Fresh in ✦"), reduce ? 0 : 450);
         toast(`Ooh, new ${CATS[data.category].one.toLowerCase()}!`);
+        postAfterSave();
       });
 
       $("#picks").addEventListener("change", (e) => tint(e.target.value));
@@ -2245,8 +2387,8 @@
       // ---------- Sync across devices (optional) ----------
       // Off until you sign in with Google. Then your shelf is also kept in Firestore under your account, where the
       // security rules let only that account read or write it, and every device signed in to it shows the same shelf.
-      // Nothing is loaded from Google before that: the SDK comes the first time it's needed. Leave apiKey empty to
-      // turn sync off (forks: use your own Firebase project).
+      // Nothing is loaded from Google before that: the SDK comes the first time it's needed (or when Rasu's postcard is
+      // posted, below). Leave apiKey empty to turn sync and the postcard off (forks: use your own Firebase project).
       const SYNC = {
         apiKey: "AIzaSyBSQQit9FIm0AuI9hNZKVRSpSw3ub6sskc",
         authDomain: "rasa-vault-c66d6.firebaseapp.com",
@@ -3701,6 +3843,173 @@
       if (newHere && !tourSeen && !location.hash) {
         document.fonts.ready.then(() => setTimeout(() => [dlg, curDlg, shareDlg].some((d) => d.open) || startTour(), 600));
       }
+
+      // ---------- A postcard from your museum ----------
+      // Rasu asks for an email so it can write now and then. The first time comes after your first new card, or 45
+      // seconds into the visit; after that on about one visit in three, at least two days apart; never once posted.
+      // The address goes to Firestore's letters, which anyone can add to and only the site owner can read.
+      const POST_KEY = "rasaPost"; // {sent} once posted, or {seen, last}: how often it was shown, and when last
+      const POST_GAP = 2 * 864e5, POST_ODDS = 0.35, POST_FIRST = 45000;
+      const postDlg = $("#postDlg"), postForm = $("#postForm"), postFront = $("#postFront"), postBack = $("#postBack");
+      const postEmail = $("#postEmail"), postSend = $("#postSend"), postSay = $("#postSay"), postWall = $("#postWall");
+      const EMAIL_OK = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+      let postTimer = 0, turnTimer = 0;
+
+      // null: this browser can't remember anything, so Rasu never asks (it would ask on every visit)
+      function readPost() {
+        let raw;
+        try { raw = localStorage.getItem(POST_KEY); } catch { return null; }
+        try {
+          const p = JSON.parse(raw);
+          return p && typeof p === "object" ? p : {};
+        } catch {
+          return {};
+        }
+      }
+      let post = readPost();
+      const keepPost = () => {
+        try { localStorage.setItem(POST_KEY, JSON.stringify(post)); } catch {}
+      };
+
+      // Each visit decides once, so reloading the page doesn't roll the dice again
+      function postThisVisit() {
+        if (!syncReady || !post || post.sent) return false;
+        let plan = "";
+        try { plan = sessionStorage.getItem(POST_KEY) || ""; } catch {}
+        if (!plan) {
+          plan = !post.seen || (Date.now() - (Number(post.last) || 0) >= POST_GAP && Math.random() < POST_ODDS) ? "ask" : "skip";
+          try { sessionStorage.setItem(POST_KEY, plan); } catch {}
+        }
+        return plan === "ask";
+      }
+      let postDue = postThisVisit();
+
+      // Rasu waits for a quiet moment: the page in view, and no form, tour or other window open
+      const postQuiet = () => document.visibilityState === "visible" && ![dlg, curDlg, shareDlg, rasaDlg, tour, postDlg].some((d) => d.open);
+      function postSoon(ms) {
+        if (!postDue) return;
+        clearTimeout(postTimer);
+        postTimer = setTimeout(function knock() {
+          if (!postDue) return;
+          if (!postQuiet()) return (postTimer = setTimeout(knock, 5000));
+          openPostcard();
+        }, ms);
+      }
+      // The first time, a card you've just saved is the moment: now your museum has something on its walls
+      function postAfterSave() {
+        if (postDue && !post.seen) postSoon(2600);
+      }
+      if (postDue) postSoon(post.seen ? 15000 + Math.random() * 15000 : POST_FIRST);
+
+      const postFrame = (x) => {
+        const cover = x.photo ? "" : seedCover(x);
+        const art = x.photo
+          ? `<img data-pid="${x.id}" alt="" />`
+          : cover
+            ? `<img src="${cover}" alt="" />`
+            : `<span class="post-gen" style="--h:${titleHue(x.title)}">${ICONS[x.category]}</span>`;
+        return `<figure class="post-frame"><span class="post-art">${art}</span><figcaption>${esc(x.title)}</figcaption></figure>`;
+      };
+      function paintPostcard() {
+        const who = curator.name || `@${curator.user}`;
+        $("#postPlace").textContent = `${who}'s museum`;
+        $("#postWho").textContent = who;
+        // Up to three of your own cards on the wall, the best loved first (the example cards while there's nothing of
+        // your own yet), and a reserved frame for each one still to come
+        const own = vault.filter((x) => !SEED.some((s) => s.id === x.id));
+        const hung = [...(own.length ? own : vault)].sort((a, b) => b.rating - a.rating || b.updated - a.updated || b.added - a.added).slice(0, 3);
+        const reserved = '<figure class="post-frame reserved"><span class="post-art"><span class="post-gen">?</span></span><figcaption>Reserved</figcaption></figure>';
+        postWall.innerHTML = hung.map(postFrame).join("") + reserved.repeat(3 - hung.length);
+        postWall.querySelectorAll("img[data-pid]").forEach((img) => photoURL(Number(img.dataset.pid)).then((u) => u && (img.src = u)));
+        $("#postCap").textContent = `${vault.length} ${vault.length === 1 ? "treasure" : "treasures"} and counting`;
+        // The stamp is your rasa, the one most of your cards share, or else a friendly one picked at random
+        const tagged = vault.filter((x) => x.rasa), kind = ["shringara", "hasya", "veera", "adbhuta", "shanta"];
+        const r = RASAS[tagged.length ? readRasa(tagged).top : kind[Math.floor(Math.random() * kind.length)]];
+        const stamp = $("#postStamp");
+        stamp.style.setProperty("--r", r.color);
+        stamp.classList.toggle("dark", !!r.dark);
+        stamp.innerHTML = `${r.sym}<small>${r.name}</small>`;
+        const today = new Date(), h = today.getHours();
+        $("#postMark").innerHTML = `Rasa<br />${today.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}<br />Pocket museum`;
+        const when = h < 5 ? "at this hour" : h < 12 ? "this morning" : h < 17 ? "this afternoon" : "this evening";
+        $("#postHand").textContent = `Dear curator,\nyour museum looks lovely ${when}. May I write to you now and then? Just a nudge when something new deserves a frame, and news when the museum grows.`;
+        postSay.textContent = "";
+        if (!postEmail.value && me?.email) postEmail.value = me.email; // signed in: the Google address, ready to post
+      }
+
+      function openPostcard() {
+        postDue = false;
+        clearTimeout(postTimer);
+        try { sessionStorage.setItem(POST_KEY, "done"); } catch {}
+        post = { seen: (Number(post.seen) || 0) + 1, last: Date.now() };
+        keepPost();
+        paintPostcard();
+        postDlg.classList.remove("turned", "posted", "gone");
+        postFront.inert = false;
+        postBack.inert = true;
+        postSend.disabled = false;
+        postDlg.showModal();
+        count("postcard-shown", true);
+        petMood("grin");
+        hop();
+        clearTimeout(turnTimer);
+        turnTimer = setTimeout(turnPostcard, calm() ? 0 : 1800); // a moment for the picture side, then it turns over
+      }
+      function turnPostcard() {
+        clearTimeout(turnTimer);
+        if (!postDlg.open || postDlg.classList.contains("turned")) return;
+        postDlg.classList.add("turned");
+        postFront.inert = true;
+        postBack.inert = false;
+        if (matchMedia("(hover: hover)").matches) setTimeout(() => postDlg.open && postEmail.focus({ preventScroll: true }), calm() ? 0 : 450);
+      }
+      postFront.addEventListener("click", turnPostcard);
+      $("#postClose").addEventListener("click", () => postDlg.close());
+      $("#postLater").addEventListener("click", () => {
+        postDlg.close();
+        toast("No problem. Maybe another day ✦");
+      });
+      postDlg.addEventListener("close", () => clearTimeout(turnTimer));
+
+      // Posting uses a small Firebase app of its own, so it never starts or stops sync. A letter that can't get
+      // through within 15 seconds counts as not posted.
+      async function sendLetter(email) {
+        const [app, store] = await Promise.all(["app", "firestore"].map((m) => import(`${SYNC_SDK}firebase-${m}.js`)));
+        const a = app.getApps().find((x) => x.name === "letters") || app.initializeApp(SYNC, "letters");
+        const sent = store.addDoc(store.collection(store.getFirestore(a), "letters"), { email, at: Date.now() });
+        await Promise.race([sent, new Promise((_, fail) => setTimeout(() => fail(new Error("timeout")), 15000))]);
+      }
+      postForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        if (postSend.disabled) return;
+        const email = postEmail.value.trim();
+        if (email.length > 254 || !EMAIL_OK.test(email)) {
+          postSay.textContent = "Hmm, that address looks smudged. Try again?";
+          postBack.animate([{ translate: "-6px 0" }, { translate: "6px 0" }, { translate: "0 0" }], { duration: 300 });
+          return postEmail.focus();
+        }
+        postSend.disabled = true;
+        postSend.textContent = "Posting…";
+        postSay.textContent = "";
+        try {
+          await sendLetter(email);
+        } catch {
+          postSend.disabled = false;
+          postSend.textContent = "Post it 📮";
+          postSay.textContent = "The mailbox is jammed. Try again in a bit?";
+          return;
+        }
+        post = { sent: Date.now() };
+        keepPost();
+        count("postcard-sent", true); // only that one was posted: the address itself never goes to the counter
+        postDlg.classList.add("posted"); // the postmark lands on the stamp, then off it goes
+        setTimeout(() => postDlg.classList.add("gone"), calm() ? 0 : 600);
+        setTimeout(() => {
+          postDlg.close();
+          postSend.textContent = "Post it 📮";
+          toast("Posted! Rasu will write now and then ✦");
+        }, calm() ? 0 : 1400);
+      });
 
       // ---------- Start ----------
       setFilter("all", true);

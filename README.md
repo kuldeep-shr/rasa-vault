@@ -19,6 +19,7 @@ A pocket museum for the music, books, web series and movies that moved you. Rasa
 - **What's your rasa?** In Indian art, *rasa* is the feeling a work leaves in you, and there are nine: love, laughter, sorrow, fury, courage, fear, disgust, wonder and peace. Tag each card with the one it left you with, in the card form or all at once under **My rasa ✦**. If a second feeling stayed behind (it made you laugh, then left you tender), the card form also takes an optional **aftertaste**: one more rasa, different from the first, shown under it on the back of the card. Once three cards are tagged, Rasa reads your rasa, the one most of their main rasas share, and draws it as a picture for Stories. The picture has a nine-petal lotus in the Natya Shastra's colours and three of the cards behind your rasa. Searching a rasa's name, like "karuna" or "wonder", finds the cards tagged with it, as their rasa or their aftertaste.
 - **Your curator card.** A name and a username for your museum, under the sign. Rasa makes up a username for you, like `@velvet.vinyl` or `@moonlit.matinee`, and you can change both any time. Your shared pictures are signed with them.
 - **Sync across devices (optional).** Sign in with Google from your curator card and every device you use shows the same shelf: cards, ratings, notes, rasas, photos and your curator card. Changes arrive within seconds, deleting a card deletes it everywhere, and two devices that each added the same thing end up with one card.
+- **A postcard from Rasu.** Now and then a postcard arrives: your museum on the front, with three of your cards hanging on a gallery wall, and Rasu's note on the back, stamped with your rasa. Write your email on the address line and post it, and Rasu writes at most once a month, with a nudge when something new deserves a frame and news when the museum grows. Rasu asks once (after your first new card, or 45 seconds into your first visit), then on about one visit in three, at least two days apart, and never again once a postcard is posted. Signed in? Your Google email is already on it.
 - **Feedback switches.** No form and nothing to type. Visitors switch on what feels true, like *I love Rasa* or *Make a phone app*, and send it to Rasu. Each knob is a sleepy face that wakes up and smiles when it's on. Beside them, two counters show how many curators Rasa has so far and how many have sent feedback.
 - **Search, Surprise me and Undo,** plus keyboard shortcuts: `/` to search, `N` to add, `R` for a surprise pick, `S` to share, `?` for the tour.
 - Works on phones, supports the keyboard and respects reduced-motion settings.
@@ -52,7 +53,7 @@ Every tab and window of the same browser shares that vault. A change made in one
 
 Sync is switched on by the Firebase web config in `SYNC` in `index.html`, and it's on in the live demo. With an empty `apiKey` there's no sync button and nothing changes.
 
-With the config in, sync is still off for each visitor until they press **Sign in with Google** on their curator card, or **Sync devices ☁** under the sign. Until then, the page loads nothing from Google.
+With the config in, sync is still off for each visitor until they press **Sign in with Google** on their curator card, or **Sync devices ☁** under the sign. Until then, the page loads nothing from Google, unless the visitor posts Rasu's postcard (see [Postcards](#postcards)).
 
 Once signed in, the shelf is also kept in Cloud Firestore (in Mumbai, `asia-south1`) under that Google account, and every device signed in to the same account shows the same shelf. A device signed in to a different Google account has a shelf of its own, so the sync box shows which account each device uses. The browser keeps its own copy too, so Rasa still works offline and catches up when it's back. Signing out keeps the shelf on that device and stops syncing it.
 
@@ -72,14 +73,23 @@ How devices agree:
 - **One card per thing, across devices too.** If two devices each added the same thing before they synced, the two cards become one: the one with a photo, otherwise the older one. It also takes the other's creator, rating and note when it has none, and keeps both notes if they differ.
 - **Example cards** that nobody has touched never override a real change, and an example card removed on any device is removed everywhere.
 
-Only the signed-in account can read or write its shelf. These are the Firestore security rules:
+Only the signed-in account can read or write its shelf, and a postcard's email can be added but never read back. These are the Firestore security rules:
 
 ```text
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Each signed-in person can read and write only their own shelf
     match /shelves/{uid}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    // Anyone can post an email from Rasu's postcard. Nobody can read, change or delete one from the app.
+    match /letters/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['email', 'at'])
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 254
+        && request.resource.data.email.matches('[^@\\s]+@[^@\\s]+[.][^@\\s]+')
+        && request.resource.data.at is int;
     }
   }
 }
@@ -96,6 +106,20 @@ A fork should use its own Firebase project, on the free Spark plan:
 
 Leave `apiKey` empty to turn sync off.
 
+## Postcards
+
+Rasu's postcard asks for an email so the site owner can write now and then. The front shows the visitor's museum: their name or username, three of their cards (best rated first) and how many treasures it holds. The back has Rasu's note, a stamp in the visitor's rasa, and the address line.
+
+When it shows up:
+
+- **Never again once a postcard is posted** from that browser.
+- **The first time**, a few seconds after the visitor saves their first new card, or 45 seconds into the visit, whichever comes first.
+- **After that, on about one visit in three,** and at least two days after it was last shown. Each visit decides once, so reloading the page doesn't ask again.
+- Only at a quiet moment: never over the card form, the tour or another window.
+- A browser that can't keep anything in local storage is never asked, since it would be asked on every visit.
+
+Posting sends only the email and the time it was posted, to `letters/{id}` in Firestore, through a small Firebase app of its own, so it never starts or stops sync. The rules above let anyone add one and nobody read, change or delete one from the app. The owner sees them in the Firebase console. Nothing about the email goes to GoatCounter, only that a postcard was shown or posted. Rasa doesn't send the letters; the owner does, at most once a month, and stops when someone replies "stop".
+
 ## Visit counts
 
 Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the site owner can see how it's doing:
@@ -108,9 +132,10 @@ Rasa counts a few things with [GoatCounter](https://www.goatcounter.com), so the
 | `shared-shelf`, `saved-shelf` | Someone shares or saves a picture of their shelf. |
 | `rasa-read`, `shared-rasa`, `saved-rasa` | Someone reads their rasa, then shares or saves its picture. Which rasa it is isn't sent. |
 | `sync-on` | Someone signs in with Google to sync their shelf. |
+| `postcard-shown`, `postcard-sent` | Rasu's postcard opens, and someone posts it. The email isn't sent. |
 | `feedback-sent`, plus `feedback-love`, `feedback-easy`, `feedback-friend`, `feedback-app`, `feedback-shelves` | Someone presses **Send to Rasu**. One `feedback-sent`, and one count for each switch they turned on. Sending the same answers again from the same browser isn't counted. |
 
-Only these plain numbers are sent. There are no cookies, and a title, note, name or username is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted, except for feedback, which is only sent when someone presses Send.
+Only these plain numbers are sent. There are no cookies, and a title, note, name, username or email is never sent. Browsers that send Do Not Track or Global Privacy Control aren't counted, except for feedback, which is only sent when someone presses Send.
 
 To see which platform brings visitors, tag your links, for example `https://kuldeep-shr.github.io/rasa-vault/?ref=instagram`. GoatCounter lists each tag as a campaign.
 
